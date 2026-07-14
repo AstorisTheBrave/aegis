@@ -6,6 +6,7 @@ import {
   ExtensionRegistry,
   InMemoryExtensionRegistryRepository,
   signArtifact,
+  type SignedExtensionArtifact,
 } from '@aegis/extension-registry';
 import { VerifiedExtensionRegistryManager } from '../src/extensions.js';
 import { createApp } from '../src/app.js';
@@ -80,6 +81,7 @@ describe('verified extension installation', () => {
       {
         certificationStatus: 'fixture_certified',
         permissions: ['users.read'],
+        governanceStatus: 'verified',
         lifecycle: { status: 'active' },
         provenance: { testStatus: 'passed' },
       },
@@ -88,5 +90,46 @@ describe('verified extension installation', () => {
       (await app.inject({ method: 'POST', url: '/v1/extensions', payload: {} })).statusCode,
     ).toBe(400);
     await app.close();
+  });
+
+  it('lists legacy signed artifacts as unverified instead of failing the catalog', async () => {
+    const keys = generateKeyPairSync('ed25519');
+    const current = signArtifact(
+      {
+        id: 'legacy-policy-pack',
+        version: '1.0.0',
+        kind: 'policy-pack',
+        publishedAt: '2026-07-14T00:00:00.000Z',
+        maintainer: { name: 'Community Maintainer', contact: 'security@example.test' },
+        protocolVersion: CONNECTOR_PROTOCOL_VERSION,
+        governance: {
+          protocolVersions: [CONNECTOR_PROTOCOL_VERSION],
+          platform: { minimum: '0.1.0' },
+          provenance: {
+            sourceRevision: 'git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            buildDigest: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            testedAt: '2026-07-14T00:00:00.000Z',
+            testStatus: 'passed',
+          },
+          lifecycle: { status: 'active' },
+        },
+        content: { controls: ['review'], rules: [] },
+      },
+      keys.publicKey.export({ type: 'spki', format: 'pem' }).toString(),
+      keys.privateKey,
+    );
+    const { governance: _governance, ...legacyPayload } = current.payload;
+    const legacy = { ...current, payload: legacyPayload } as unknown as SignedExtensionArtifact;
+    const registry = new ExtensionRegistry({
+      install: async () => undefined,
+      list: async () => [legacy],
+    });
+
+    await expect(new VerifiedExtensionRegistryManager(registry).list()).resolves.toEqual([
+      expect.objectContaining({
+        id: 'legacy-policy-pack',
+        governanceStatus: 'legacy_unverified',
+      }),
+    ]);
   });
 });

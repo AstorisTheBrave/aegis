@@ -118,10 +118,24 @@ export function createAccessCsvBatch(input: {
     connectorId: input.connectorId,
     startedAt: input.observedAt,
     completedAt: input.observedAt,
-    events: [...events.entries()]
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([, event]) => event),
+    events: [...events.values()].sort((left, right) => {
+      const priority = eventPriority(left) - eventPriority(right);
+      return priority || left.entity.id.localeCompare(right.entity.id);
+    }),
   };
+}
+
+function eventPriority(event: GraphSyncEvent): number {
+  switch (event.type) {
+    case 'identity.upsert':
+      return 0;
+    case 'resource.upsert':
+      return 1;
+    case 'entitlement.upsert':
+      return 2;
+    case 'grant.upsert':
+      return 3;
+  }
 }
 
 function parseCsv(input: string): string[][] {

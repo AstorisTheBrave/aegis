@@ -14,12 +14,13 @@ export interface ExtensionCatalogItem {
   readonly certificationStatus?: 'fixture_certified' | 'live_certified';
   readonly scopeReviewStatus?: 'self_attested' | 'maintainer_reviewed';
   readonly permissions: readonly string[];
-  readonly lifecycle: SignedExtensionArtifact['payload']['governance']['lifecycle'];
-  readonly compatibility: {
+  readonly governanceStatus: 'verified' | 'legacy_unverified';
+  readonly lifecycle?: SignedExtensionArtifact['payload']['governance']['lifecycle'];
+  readonly compatibility?: {
     readonly protocolVersions: readonly string[];
     readonly platform: SignedExtensionArtifact['payload']['governance']['platform'];
   };
-  readonly provenance: SignedExtensionArtifact['payload']['governance']['provenance'];
+  readonly provenance?: SignedExtensionArtifact['payload']['governance']['provenance'];
 }
 
 export interface ExtensionRegistryManager {
@@ -50,6 +51,9 @@ function toCatalogItem(artifact: SignedExtensionArtifact): ExtensionCatalogItem 
     artifact.payload.kind === 'connector'
       ? (artifact.payload.content as ConnectorContribution).certification.scopeReview.status
       : undefined;
+  const governance = hasUsableGovernance(artifact.payload.governance)
+    ? artifact.payload.governance
+    : undefined;
   return {
     id: artifact.payload.id,
     version: artifact.payload.version,
@@ -60,15 +64,33 @@ function toCatalogItem(artifact: SignedExtensionArtifact): ExtensionCatalogItem 
       artifact.payload.kind === 'connector'
         ? (artifact.payload.content as ConnectorContribution).manifest.minimumScopes
         : [],
-    lifecycle: artifact.payload.governance.lifecycle,
-    compatibility: {
-      protocolVersions: artifact.payload.governance.protocolVersions,
-      platform: artifact.payload.governance.platform,
-    },
-    provenance: artifact.payload.governance.provenance,
+    governanceStatus: governance ? 'verified' : 'legacy_unverified',
+    ...(governance
+      ? {
+          lifecycle: governance.lifecycle,
+          compatibility: {
+            protocolVersions: governance.protocolVersions,
+            platform: governance.platform,
+          },
+          provenance: governance.provenance,
+        }
+      : {}),
     ...(certification ? { certificationStatus: certification } : {}),
     ...(scopeReview ? { scopeReviewStatus: scopeReview } : {}),
   };
+}
+
+function hasUsableGovernance(
+  value: unknown,
+): value is SignedExtensionArtifact['payload']['governance'] {
+  if (!value || typeof value !== 'object') return false;
+  const governance = value as Record<string, unknown>;
+  return (
+    Array.isArray(governance.protocolVersions) &&
+    Boolean(governance.platform && typeof governance.platform === 'object') &&
+    Boolean(governance.provenance && typeof governance.provenance === 'object') &&
+    Boolean(governance.lifecycle && typeof governance.lifecycle === 'object')
+  );
 }
 
 function isSignedExtensionArtifact(value: unknown): value is SignedExtensionArtifact {
