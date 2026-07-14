@@ -1,5 +1,5 @@
 {
-  "name": "@open-saas-governance/connector-protocol",
+  "name": "@open-saas-governance/postgres-store",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -13,10 +13,13 @@
     "typecheck": "tsc --project tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@bufbuild/protobuf": "2.12.1",
-    "zod": "4.1.10"
+    "@open-saas-governance/access-graph": "workspace:*",
+    "@open-saas-governance/audit-ledger": "workspace:*",
+    "pg": "8.22.0"
   },
   "devDependencies": {
+    "@types/node": "24.1.0",
+    "@types/pg": "8.20.0",
     "vitest": "4.1.10"
   }
 }

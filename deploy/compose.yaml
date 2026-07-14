@@ -13,7 +13,7 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - governance-postgres:/var/lib/postgresql/data
+      - governance-postgres-v18:/var/lib/postgresql
 
 volumes:
-  governance-postgres:
+  governance-postgres-v18:

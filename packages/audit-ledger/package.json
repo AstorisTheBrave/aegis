@@ -1,5 +1,5 @@
 {
-  "name": "@open-saas-governance/connector-protocol",
+  "name": "@open-saas-governance/audit-ledger",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,11 +12,8 @@
     "test": "vitest run",
     "typecheck": "tsc --project tsconfig.json --noEmit"
   },
-  "dependencies": {
-    "@bufbuild/protobuf": "2.12.1",
-    "zod": "4.1.10"
-  },
   "devDependencies": {
+    "@types/node": "24.1.0",
     "vitest": "4.1.10"
   }
 }
