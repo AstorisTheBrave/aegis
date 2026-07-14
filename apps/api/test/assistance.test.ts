@@ -54,7 +54,13 @@ describe('assistance API', () => {
         actor: 'admin@acme.dev',
         promptVersion: 'v1',
         sourceFacts: [
-          { id: 'grant:1', label: 'GitHub maintain grant', observedAt: '2026-07-14T20:00:00.000Z' },
+          {
+            id: 'grant:1',
+            label: 'GitHub maintain grant',
+            observedAt: '2026-07-14T20:00:00.000Z',
+            credentials: 'untrusted-secret',
+            providerUrl: 'https://untrusted.example',
+          },
         ],
       },
     });
@@ -62,7 +68,11 @@ describe('assistance API', () => {
       providerMutation: false,
       enforcement: 'not_authorized',
     });
-    expect((await audit.list('acme')).map((record) => record.type)).toEqual([
+    expect(response.json().sourceFacts[0]).not.toHaveProperty('credentials');
+    expect(response.json().sourceFacts[0]).not.toHaveProperty('providerUrl');
+    const auditRecords = await audit.list('acme');
+    expect(JSON.stringify(auditRecords[1]?.data)).not.toContain('untrusted-secret');
+    expect(auditRecords.map((record) => record.type)).toEqual([
       'assistance.settings_updated',
       'assistance.output_generated',
     ]);
