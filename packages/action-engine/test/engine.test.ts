@@ -98,4 +98,14 @@ describe('ControlledActionEngine', () => {
       engine.request('acme', { ...input, provider: 'mock-github', kind: 'disable_account' }),
     ).rejects.toThrow('not allowlisted');
   });
+
+  it('applies separation checks to legacy action rows with unnormalized actors', async () => {
+    const repository = new InMemoryActionRepository();
+    const engine = new ControlledActionEngine(repository, new InMemoryAuditLedger());
+    const action = await engine.request('acme', input);
+    await repository.save({ ...action, requestedBy: ' Requester@Acme.Dev ' });
+    await expect(
+      engine.approve('acme', action.id, { approver: 'requester@acme.dev', reason: 'No.' }),
+    ).rejects.toThrow('Requester cannot approve');
+  });
 });

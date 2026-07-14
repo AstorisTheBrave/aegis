@@ -104,6 +104,7 @@ describe('GitHubConnector', () => {
       }),
     );
     expect(calls.some((call) => call.url.includes('page=2'))).toBe(true);
+    expect(calls.some((call) => call.url.includes('collaborators?affiliation=direct'))).toBe(true);
     expect(calls.every((call) => call.method === undefined || call.method === 'GET')).toBe(true);
   });
 });
