@@ -120,6 +120,10 @@ export const defaultMockActionPolicies: readonly ActionPolicy[] = [
   },
 ];
 
+function canonicalActor(actor: string): string {
+  return actor.trim().toLowerCase();
+}
+
 export class ControlledActionEngine {
   readonly #adapters: ReadonlyMap<MockProviderId, CertifiedMockAdapter>;
 
@@ -137,7 +141,9 @@ export class ControlledActionEngine {
   async request(tenantId: string, input: CreateActionInput): Promise<ControlledAction> {
     const errors = validateCreateActionInput(input);
     if (errors.length) throw new Error(errors.join('; '));
+    this.requireSupportedMockAction(input.provider, input.kind);
     const requestedAt = this.now().toISOString();
+    const requestedBy = canonicalActor(input.requestedBy);
     const action: ControlledAction = {
       schemaVersion: actionSchemaVersion,
       id: `action:${this.createId()}`,
@@ -146,7 +152,7 @@ export class ControlledActionEngine {
       provider: input.provider,
       kind: input.kind,
       target: input.target,
-      requestedBy: input.requestedBy,
+      requestedBy,
       requestedAt,
       requiredScopes: input.requiredScopes,
       idempotencyKey: input.idempotencyKey,
@@ -162,7 +168,7 @@ export class ControlledActionEngine {
     await this.audit.append({
       tenantId,
       occurredAt: requestedAt,
-      actor: input.requestedBy,
+      actor: requestedBy,
       type: 'action.requested',
       correlationId: action.id,
       data: { action, providerMutation: false },
@@ -177,10 +183,10 @@ export class ControlledActionEngine {
   ): Promise<ControlledAction> {
     const action = await this.requireAction(tenantId, actionId);
     if (action.status !== 'requested') throw new Error('Only requested actions can be approved');
-    if (!input.approver.trim() || !input.reason.trim())
-      throw new Error('Approver and reason are required');
+    const approver = canonicalActor(input.approver);
+    if (!approver || !input.reason.trim()) throw new Error('Approver and reason are required');
     const now = this.now();
-    if (input.approver === action.requestedBy) {
+    if (approver === action.requestedBy) {
       if (!input.breakGlass) throw new Error('Requester cannot approve their own action');
       const expiry = new Date(input.breakGlass.expiresAt);
       if (
@@ -196,8 +202,8 @@ export class ControlledActionEngine {
     }
     const approval: ActionApproval = {
       actionId,
-      approver: input.approver,
-      reason: input.reason,
+      approver,
+      reason: input.reason.trim(),
       approvedAt: now.toISOString(),
       ...(input.breakGlass ? { breakGlass: input.breakGlass } : {}),
     };
@@ -223,25 +229,14 @@ export class ControlledActionEngine {
     const action = await this.requireAction(tenantId, actionId);
     if (!['approved', 'failed'].includes(action.status))
       throw new Error('Action is not approved for execution');
-    if (!executor.trim()) throw new Error('Executor is required');
+    const normalizedExecutor = canonicalActor(executor);
+    if (!normalizedExecutor) throw new Error('Executor is required');
     const approval = action.approvals.at(-1);
     if (!approval) throw new Error('Action approval is required');
-    if (executor === action.requestedBy || executor === approval.approver) {
+    if (normalizedExecutor === action.requestedBy || normalizedExecutor === approval.approver) {
       throw new Error('Requester, approver, and executor must be distinct');
     }
-    const policy = this.policies.find((candidate) => candidate.provider === action.provider);
-    const adapter = this.#adapters.get(action.provider);
-    if (!policy || policy.mode !== 'mock' || !policy.allowedKinds.includes(action.kind)) {
-      throw new Error('Action is not allowlisted for mock execution');
-    }
-    if (
-      !adapter ||
-      adapter.certified !== true ||
-      adapter.mode !== 'mock' ||
-      !adapter.supportedKinds.includes(action.kind)
-    ) {
-      throw new Error('No certified mock adapter supports this action');
-    }
+    const adapter = this.requireSupportedMockAction(action.provider, action.kind);
     const attempt = action.executions.length + 1;
     if (attempt > action.maxAttempts) throw new Error('Action retry limit reached');
     const startedAt = this.now().toISOString();
@@ -250,7 +245,7 @@ export class ControlledActionEngine {
       const execution: ActionExecution = {
         actionId,
         attempt,
-        executor,
+        executor: normalizedExecutor,
         startedAt,
         completedAt: this.now().toISOString(),
         status: 'completed',
@@ -269,7 +264,7 @@ export class ControlledActionEngine {
       const execution: ActionExecution = {
         actionId,
         attempt,
-        executor,
+        executor: normalizedExecutor,
         startedAt,
         completedAt: this.now().toISOString(),
         status: 'failed',
@@ -295,16 +290,15 @@ export class ControlledActionEngine {
   ): Promise<ControlledAction> {
     const action = await this.requireAction(tenantId, actionId);
     if (action.status !== 'completed') throw new Error('Only completed actions can be compensated');
-    const adapter = this.#adapters.get(action.provider);
-    if (!adapter || adapter.certified !== true || adapter.mode !== 'mock') {
-      throw new Error('No certified mock adapter supports compensation');
-    }
+    const normalizedExecutor = canonicalActor(executor);
+    if (!normalizedExecutor) throw new Error('Executor is required');
+    const adapter = this.requireSupportedMockAction(action.provider, action.kind);
     const startedAt = this.now().toISOString();
     const result = await adapter.compensate(action);
     const execution: ActionExecution = {
       actionId,
       attempt: action.executions.length + 1,
-      executor,
+      executor: normalizedExecutor,
       startedAt,
       completedAt: this.now().toISOString(),
       status: 'compensated',
@@ -329,6 +323,26 @@ export class ControlledActionEngine {
     const action = await this.repository.get(tenantId, actionId);
     if (!action) throw new Error('Action not found');
     return action;
+  }
+
+  private requireSupportedMockAction(
+    provider: MockProviderId,
+    kind: ActionKind,
+  ): CertifiedMockAdapter {
+    const policy = this.policies.find((candidate) => candidate.provider === provider);
+    const adapter = this.#adapters.get(provider);
+    if (!policy || policy.mode !== 'mock' || !policy.allowedKinds.includes(kind)) {
+      throw new Error('Action is not allowlisted for mock execution');
+    }
+    if (
+      !adapter ||
+      adapter.certified !== true ||
+      adapter.mode !== 'mock' ||
+      !adapter.supportedKinds.includes(kind)
+    ) {
+      throw new Error('No certified mock adapter supports this action');
+    }
+    return adapter;
   }
 
   private async recordExecutionAudit(

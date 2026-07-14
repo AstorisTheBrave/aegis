@@ -89,6 +89,17 @@ describe('controlled action API', () => {
     const duplicate = await app.inject({ method: 'POST', url: path, payload });
     expect(first.json()).toHaveLength(3);
     expect(duplicate.json()).toMatchObject(first.json());
+    const tampered = await app.inject({
+      method: 'POST',
+      url: path,
+      payload: {
+        ...payload,
+        idempotencyKey: 'shared',
+        provider: 'mock-okta',
+        kind: 'disable_account',
+      },
+    });
+    expect(tampered.json()).toMatchObject(first.json());
     await app.close();
   });
 });
