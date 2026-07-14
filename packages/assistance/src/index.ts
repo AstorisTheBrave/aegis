@@ -137,7 +137,10 @@ export class AssistanceEngine {
     const instruction = redact(input.instruction ?? '');
     const sourceFacts = input.sourceFacts.map((fact) => {
       const label = redact(fact.label);
-      return { source: { ...fact, label: label.value }, redactionCount: label.count };
+      return {
+        source: { id: fact.id, label: label.value, observedAt: fact.observedAt },
+        redactionCount: label.count,
+      };
     });
     const redactionCount =
       instruction.count + sourceFacts.reduce((sum, fact) => sum + fact.redactionCount, 0);
