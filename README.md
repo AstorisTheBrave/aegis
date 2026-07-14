@@ -168,3 +168,11 @@ See [ecosystem governance](docs/ecosystem-governance.md), the public
 [compatibility matrix](docs/compatibility-matrix.json), and the
 [CSV portability guide](docs/data-portability.md). The CSV migration kit is
 read-only: it converts an export to graph events and never contacts a provider.
+
+## Deployment security and end-to-end verification
+
+The default Compose deployment runs a same-origin console gateway, a loopback
+API, and an internal PostgreSQL service. Run `pnpm test:e2e` to build that stack
+and exercise it with real browsers and OWASP-aligned negative tests. Read the
+public [threat model](docs/threat-model.md) and [E2E guide](docs/e2e-testing.md)
+before exposing a self-hosted deployment beyond a trusted operator network.
