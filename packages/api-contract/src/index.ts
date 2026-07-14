@@ -64,3 +64,42 @@ export interface EvidenceBundle {
   readonly records: readonly unknown[];
   readonly sha256: string;
 }
+
+export type CampaignDecision = 'retain' | 'remove_recommended' | 'delegate' | 'exception';
+
+export interface ReviewCampaignTask {
+  readonly id: string;
+  readonly findingId: string;
+  readonly findingTitle: string;
+  readonly severity: 'low' | 'medium' | 'high';
+  readonly assignedReviewer?: string;
+  readonly route: 'resource_owner' | 'fallback_reviewer' | 'unassigned' | 'delegated';
+  readonly dueAt?: string;
+  readonly status: 'open' | 'completed';
+  readonly decisionCount: number;
+}
+
+export interface ReviewCampaignSummary {
+  readonly id: string;
+  readonly title: string;
+  readonly createdAt: string;
+  readonly dueAt?: string;
+  readonly status: 'open' | 'complete';
+  readonly tasks: readonly ReviewCampaignTask[];
+}
+
+export interface CreateReviewCampaignInput {
+  readonly title: string;
+  readonly findingIds?: readonly string[];
+  readonly fallbackReviewer?: string;
+  readonly dueAt?: string;
+  readonly actor: string;
+}
+
+export interface RecordCampaignDecisionInput {
+  readonly kind: CampaignDecision;
+  readonly reviewer: string;
+  readonly rationale: string;
+  readonly delegatedTo?: string;
+  readonly exceptionExpiresAt?: string;
+}

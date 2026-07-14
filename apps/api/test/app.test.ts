@@ -32,6 +32,30 @@ async function createGraph() {
 }
 
 const services: ApiServices = {
+  syncRuns: {
+    async start() {
+      throw new Error('not used');
+    },
+    async complete() {
+      throw new Error('not used');
+    },
+    async fail() {
+      throw new Error('not used');
+    },
+    async list(tenantId) {
+      return [
+        {
+          id: 'sync:github:1',
+          tenantId,
+          connectorId: 'github-cloud',
+          status: 'completed' as const,
+          startedAt: '2026-07-14T00:00:00.000Z',
+          completedAt: '2026-07-14T00:01:00.000Z',
+          eventCount: 4,
+        },
+      ];
+    },
+  },
   findings: {
     async list() {
       return [
@@ -68,6 +92,47 @@ const services: ApiServices = {
         : undefined;
     },
   },
+  campaigns: {
+    async list() {
+      return [
+        {
+          id: 'campaign:1',
+          title: 'GitHub review',
+          createdAt: '2026-07-14T00:00:00.000Z',
+          status: 'open' as const,
+          tasks: [
+            {
+              id: 'task:1',
+              findingId: 'PRV-2025-00073',
+              findingTitle: 'Privileged access requires review',
+              severity: 'high' as const,
+              route: 'unassigned' as const,
+              status: 'open' as const,
+              decisionCount: 0,
+            },
+          ],
+        },
+      ];
+    },
+    async create(_tenantId, input) {
+      return {
+        id: 'campaign:1',
+        title: input.title,
+        createdAt: '2026-07-14T00:00:00.000Z',
+        status: 'open' as const,
+        tasks: [],
+      };
+    },
+    async decide() {
+      return {
+        id: 'campaign:1',
+        title: 'GitHub review',
+        createdAt: '2026-07-14T00:00:00.000Z',
+        status: 'complete' as const,
+        tasks: [],
+      };
+    },
+  },
   reviews: {
     async record(_tenantId, itemId, input) {
       return { itemId, ...input, recordedAt: '2025-06-14T10:00:00.000Z' };
@@ -84,6 +149,10 @@ describe('Aegis API', () => {
   it('serves health, inventory search, and scoped missing identities', async () => {
     const app = createApp(await createGraph(), services);
     expect((await app.inject('/health')).json()).toEqual({ status: 'ok' });
+    expect((await app.inject('/ready')).json()).toEqual({ status: 'ready' });
+    expect((await app.inject('/v1/tenants/acme/sync-runs')).json()).toMatchObject([
+      { connectorId: 'github-cloud', status: 'completed' },
+    ]);
     expect((await app.inject('/v1/tenants/acme/identities?query=alice')).json()).toMatchObject([
       { id: 'alice', displayName: 'Alice Example', source: 'GitHub' },
     ]);
@@ -100,6 +169,31 @@ describe('Aegis API', () => {
     expect((await app.inject('/v1/tenants/acme/findings')).json()).toMatchObject([
       { type: 'PRIVILEGED_ACCESS', severity: 'high' },
     ]);
+    expect((await app.inject('/v1/tenants/acme/review-campaigns')).json()).toMatchObject([
+      { id: 'campaign:1', tasks: [{ route: 'unassigned' }] },
+    ]);
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: '/v1/tenants/acme/review-campaigns',
+          payload: { title: 'GitHub review', actor: 'admin@acme.dev' },
+        })
+      ).json(),
+    ).toMatchObject({ title: 'GitHub review' });
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: '/v1/tenants/acme/review-campaigns/campaign:1/tasks/task:1/decisions',
+          payload: {
+            kind: 'remove_recommended',
+            reviewer: 'owner@acme.dev',
+            rationale: 'No longer needed.',
+          },
+        })
+      ).json(),
+    ).toMatchObject({ status: 'complete' });
     const decision = await app.inject({
       method: 'POST',
       url: '/v1/tenants/acme/reviews/review:PRV-2025-00073/decisions',

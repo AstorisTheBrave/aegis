@@ -11,6 +11,7 @@ import {
   PostgresAccessGraphRepository,
   PostgresAuditLedger,
   PostgresReviewCampaignRepository,
+  PostgresSyncRunStore,
 } from '../src/index.js';
 
 const databaseUrl = process.env.GOVERNANCE_TEST_DATABASE_URL;
@@ -23,12 +24,14 @@ describeDatabase('PostgreSQL storage adapters', () => {
   const reviews = new ReviewCampaignService(new PostgresReviewCampaignRepository(pool), ledger);
   const migrationUrl = new URL('../migrations/0001_access_graph.sql', import.meta.url);
   const reviewMigrationUrl = new URL('../migrations/0002_review_campaigns.sql', import.meta.url);
+  const syncMigrationUrl = new URL('../migrations/0003_sync_runs.sql', import.meta.url);
 
   beforeAll(async () => {
     await pool.query(`DROP TABLE IF EXISTS
       governance_review_task_decisions,
       governance_review_tasks,
       governance_review_campaigns,
+      governance_sync_runs,
       governance_grants,
       governance_entitlements,
       governance_resources,
@@ -37,6 +40,7 @@ describeDatabase('PostgreSQL storage adapters', () => {
       governance_audit_entries CASCADE`);
     await pool.query(await readFile(migrationUrl, 'utf8'));
     await pool.query(await readFile(reviewMigrationUrl, 'utf8'));
+    await pool.query(await readFile(syncMigrationUrl, 'utf8'));
   });
 
   afterAll(async () => {
@@ -99,6 +103,23 @@ describeDatabase('PostgreSQL storage adapters', () => {
     await expect(
       new PostgresReviewCampaignRepository(pool).get('tenant-acme', campaign.id),
     ).resolves.toMatchObject({ status: 'complete', tasks: [{ decisions: [{ kind: 'retain' }] }] });
+
+    const syncRuns = new PostgresSyncRunStore(pool);
+    await syncRuns.start({
+      id: 'sync:github-cloud:2026-07-14T10:04:00.000Z',
+      tenantId: 'tenant-acme',
+      connectorId: 'github-cloud',
+      startedAt: '2026-07-14T10:04:00.000Z',
+    });
+    await syncRuns.complete({
+      tenantId: 'tenant-acme',
+      id: 'sync:github-cloud:2026-07-14T10:04:00.000Z',
+      completedAt: '2026-07-14T10:05:00.000Z',
+      eventCount: 4,
+    });
+    await expect(syncRuns.list('tenant-acme')).resolves.toMatchObject([
+      { status: 'completed', eventCount: 4 },
+    ]);
   });
 });
 
