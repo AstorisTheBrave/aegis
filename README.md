@@ -155,3 +155,16 @@ The API rejects provider credentials and arbitrary provider URLs. This release
 establishes the versioned provider seam for future local or bring-your-own
 adapters; it does not connect to external model providers, and generated output
 never approves, revokes, or executes an action.
+
+## Durable ecosystem and portability
+
+Community extensions are signed artifacts with an immutable source revision,
+reproducible build digest, passing test status, declared platform/protocol
+compatibility, named maintainer, and active/deprecated/retired lifecycle. Aegis
+rejects incompatible or retired artifacts before installation and exposes safe
+catalog metadata such as permissions and certification state.
+
+See [ecosystem governance](docs/ecosystem-governance.md), the public
+[compatibility matrix](docs/compatibility-matrix.json), and the
+[CSV portability guide](docs/data-portability.md). The CSV migration kit is
+read-only: it converts an export to graph events and never contacts a provider.

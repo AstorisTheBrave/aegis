@@ -295,6 +295,18 @@ importers:
         specifier: 4.1.10
         version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
 
+  packages/ecosystem-governance:
+    devDependencies:
+      '@types/node':
+        specifier: 24.1.0
+        version: 24.1.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
   packages/evidence-export:
     dependencies:
       '@aegis/reviews':
@@ -313,6 +325,9 @@ importers:
 
   packages/extension-registry:
     dependencies:
+      '@aegis/ecosystem-governance':
+        specifier: workspace:*
+        version: link:../ecosystem-governance
       '@open-saas-governance/connector-protocol':
         specifier: workspace:*
         version: link:../connector-protocol
@@ -346,6 +361,22 @@ importers:
       '@types/node':
         specifier: 24.1.0
         version: 24.1.0
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
+  packages/migration-kit:
+    dependencies:
+      '@open-saas-governance/access-graph':
+        specifier: workspace:*
+        version: link:../access-graph
+    devDependencies:
+      '@types/node':
+        specifier: 24.1.0
+        version: 24.1.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
       vitest:
         specifier: 4.1.10
         version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))

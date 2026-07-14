@@ -1,0 +1,15 @@
+{
+  "platformVersion": "0.1.0",
+  "connectorProtocol": {
+    "version": "1.0.0",
+    "status": "supported",
+    "capabilities": ["IDENTITY_READ", "ACCESS_GRAPH_READ", "USAGE_READ"],
+    "providerMutation": false
+  },
+  "sdkSeeds": [
+    { "language": "TypeScript", "status": "supported", "testCommand": "pnpm test:sdks" },
+    { "language": "Go", "status": "supported", "testCommand": "pnpm test:sdks" },
+    { "language": "Python", "status": "supported", "testCommand": "pnpm test:sdks" },
+    { "language": "Rust", "status": "supported", "testCommand": "pnpm test:sdks" }
+  ]
+}

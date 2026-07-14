@@ -1,0 +1,2 @@
+identity_id,identity_name,provider,resource_id,resource_name,entitlement
+alice,"Alice, Example",github,repo-1,Platform,maintain
