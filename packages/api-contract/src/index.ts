@@ -1,7 +1,9 @@
 import type { DiscoveryObservation, DiscoveryQueueItem } from '@aegis/discovery';
 import type { CatalogApplication, CatalogOwner } from '@aegis/saas-catalog';
+import type { PolicyEvaluation } from '@aegis/review-policies';
 
 export type { CatalogApplication, CatalogOwner, DiscoveryObservation, DiscoveryQueueItem };
+export type { PolicyEvaluation };
 
 export type AccessStatus = 'active' | 'requires_review' | 'suspended';
 

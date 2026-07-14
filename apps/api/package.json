@@ -18,6 +18,7 @@
     "@aegis/findings": "workspace:*",
     "@aegis/ingestion": "workspace:*",
     "@aegis/reviews": "workspace:*",
+    "@aegis/review-policies": "workspace:*",
     "@aegis/saas-catalog": "workspace:*",
     "@open-saas-governance/postgres-store": "workspace:*",
     "@open-saas-governance/access-graph": "workspace:*",

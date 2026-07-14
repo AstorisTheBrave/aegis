@@ -21,6 +21,7 @@ import type { CampaignEvidenceReader } from './evidence.js';
 import type { ReviewCampaignManager } from './review-campaigns.js';
 import type { ExtensionRegistryManager } from './extensions.js';
 import type { DiscoveryManager } from './discovery.js';
+import type { DiscoveryReviewPolicyManager } from './review-policies.js';
 
 export type { FindingReader } from './findings.js';
 export type { CampaignEvidenceReader } from './evidence.js';
@@ -49,6 +50,7 @@ export interface ApiServices {
   readonly evidence?: EvidenceExporter;
   readonly extensions?: ExtensionRegistryManager;
   readonly discovery?: DiscoveryManager;
+  readonly reviewPolicies?: DiscoveryReviewPolicyManager;
 }
 
 function isStringArray(value: unknown): value is readonly string[] {
@@ -203,6 +205,14 @@ export function createApp(graph: AccessGraphRepository, services: ApiServices = 
   const findings = services.findings ?? new GraphFindingReader(graph);
   app.get('/health', async () => ({ status: 'ok' }));
   app.get('/ready', async () => ({ status: 'ready' }));
+  app.get<{ Params: { tenantId: string } }>(
+    '/v1/tenants/:tenantId/review-policies',
+    async (request, reply) => {
+      if (!services.reviewPolicies)
+        return reply.code(501).send({ error: 'review_policies_not_configured' });
+      return services.reviewPolicies.list(request.params.tenantId);
+    },
+  );
   app.get<{ Params: { tenantId: string } }>(
     '/v1/tenants/:tenantId/apps',
     async (request, reply) => {

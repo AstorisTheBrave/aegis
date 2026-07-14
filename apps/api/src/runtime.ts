@@ -15,6 +15,7 @@ import { StoredCampaignEvidenceReader } from './evidence.js';
 import { VerifiedExtensionRegistryManager } from './extensions.js';
 import { createApp } from './app.js';
 import { CatalogDiscoveryManager } from './discovery.js';
+import { DiscoveryReviewPolicyManager } from './review-policies.js';
 import { runMigrations } from './migrations.js';
 
 export interface RuntimeConfig {
@@ -59,6 +60,7 @@ export async function createRuntime(
       campaignEvidence: new StoredCampaignEvidenceReader(reviewRepository, audit),
       extensions: new VerifiedExtensionRegistryManager(new ExtensionRegistry(extensionRepository)),
       discovery,
+      reviewPolicies: new DiscoveryReviewPolicyManager(discovery),
       syncRuns: new PostgresSyncRunStore(pool),
     });
     return {

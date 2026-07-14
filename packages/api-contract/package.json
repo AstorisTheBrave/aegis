@@ -8,7 +8,8 @@
   },
   "dependencies": {
     "@aegis/discovery": "workspace:*",
-    "@aegis/saas-catalog": "workspace:*"
+    "@aegis/saas-catalog": "workspace:*",
+    "@aegis/review-policies": "workspace:*"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
