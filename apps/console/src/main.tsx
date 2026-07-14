@@ -26,14 +26,13 @@ import {
 import './styles.css';
 
 const tenantId = 'acme-platform';
-const selectedFindingId = 'PRV-2025-00073';
-
 export function AegisConsole() {
   const [search, setSearch] = useState('');
   const [query, setQuery] = useState('');
   const [identities, setIdentities] = useState<readonly IdentitySummary[]>([]);
   const [selectedIdentityId, setSelectedIdentityId] = useState('alice-example');
   const [finding, setFinding] = useState<FindingDetail>();
+  const [selectedFindingId, setSelectedFindingId] = useState<string>();
   const [campaigns, setCampaigns] = useState<readonly ReviewCampaignSummary[]>([]);
   const [campaignsLoading, setCampaignsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -74,13 +73,27 @@ export function AegisConsole() {
 
   useEffect(() => {
     let active = true;
-    void aegisApi.getFinding(tenantId, selectedFindingId).then((next) => {
-      if (active) setFinding(selectedIdentityId === 'alice-example' ? next : undefined);
+    void aegisApi.listFindings(tenantId).then((next) => {
+      if (active) setSelectedFindingId(next[0]?.id);
     });
     return () => {
       active = false;
     };
-  }, [selectedIdentityId]);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedFindingId) {
+      setFinding(undefined);
+      return;
+    }
+    let active = true;
+    void aegisApi.getFinding(tenantId, selectedFindingId).then((next) => {
+      if (active) setFinding(next);
+    });
+    return () => {
+      active = false;
+    };
+  }, [selectedFindingId]);
 
   useEffect(() => {
     let active = true;

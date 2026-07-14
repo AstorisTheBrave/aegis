@@ -75,7 +75,7 @@ export class GitHubConnector {
     const collaboratorsByRepository = new Map<number, readonly Collaborator[]>();
     for (const repository of repositories) {
       const collaborators = await this.list<Collaborator>(
-        `/repos/${repository.full_name}/collaborators?affiliation=all`,
+        `/repos/${repository.full_name}/collaborators?affiliation=direct`,
         input.token,
       );
       collaborators.forEach((user) => remember(user));

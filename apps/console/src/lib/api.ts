@@ -4,6 +4,7 @@ import type {
   CampaignEvidenceBundle,
   EvidenceBundle,
   FindingDetail,
+  FindingListItem,
   IdentitySummary,
   RecordedReviewDecision,
   ReviewDecision,
@@ -21,6 +22,7 @@ export type {
   CampaignEvidenceBundle,
   EvidenceBundle,
   FindingDetail,
+  FindingListItem,
   FindingEvidence,
   IdentitySummary,
   RecordedReviewDecision,
@@ -39,6 +41,7 @@ export type {
 export interface AegisApi {
   listIdentities(tenantId: string, query: string): Promise<readonly IdentitySummary[]>;
   getFinding(tenantId: string, findingId: string): Promise<FindingDetail | undefined>;
+  listFindings(tenantId: string): Promise<readonly FindingListItem[]>;
   submitReviewDecision(
     tenantId: string,
     itemId: string,
@@ -450,6 +453,20 @@ export const demoApi: AegisApi = {
   async getFinding(_tenantId, findingId) {
     return findingId === sampleFinding.id ? sampleFinding : undefined;
   },
+  async listFindings() {
+    return [
+      {
+        id: sampleFinding.id,
+        type: 'PRIVILEGED_ACCESS',
+        severity: sampleFinding.severity,
+        title: sampleFinding.title,
+        identity: sampleFinding.identity,
+        resource: sampleFinding.resource,
+        lastSeen: sampleFinding.lastSeen,
+        status: sampleFinding.status,
+      },
+    ];
+  },
   async submitReviewDecision(_tenantId, itemId, input) {
     return { itemId, ...input, recordedAt: new Date().toISOString() };
   },
@@ -675,6 +692,11 @@ export function createHttpApi(baseUrl: string): AegisApi {
       if (!response.ok) throw new Error(`Aegis API request failed (${response.status}).`);
       return (await response.json()) as FindingDetail;
     },
+    listFindings: (tenantId) =>
+      requestJson<readonly FindingListItem[]>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/findings`,
+      ),
     submitReviewDecision: (tenantId, itemId, input) =>
       requestJson<RecordedReviewDecision>(
         baseUrl,
@@ -709,7 +731,7 @@ export function createHttpApi(baseUrl: string): AegisApi {
       requestJson<ReviewCampaignSummary>(
         baseUrl,
         `/v1/tenants/${encodeURIComponent(tenantId)}/review-campaigns/${encodeURIComponent(campaignId)}/tasks/${encodeURIComponent(taskId)}/decisions`,
-        { method: 'POST', body: JSON.stringify(input) },
+        { method: 'POST', body: JSON.stringify({ ...input, kind: input.decision }) },
       ),
     exportCampaignEvidence: (tenantId, campaignId) =>
       requestJson<CampaignEvidenceBundle>(

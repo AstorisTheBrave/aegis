@@ -15,4 +15,14 @@ test('validates read-only connector manifests and redacts fixture secrets', () =
     authorization: 'REDACTED',
     nested: { token: 'REDACTED' },
   });
+  assert.throws(
+    () =>
+      assertReadOnlyManifest({
+        protocolVersion: '1.0.0',
+        id: 'unsafe-connector',
+        capabilities: ['ACTION_WRITE'],
+        minimumScopes: ['users.write'],
+      }),
+    /cannot declare write capabilities/,
+  );
 });

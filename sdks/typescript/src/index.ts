@@ -1,5 +1,10 @@
 export const protocolVersion = '1.0.0' as const;
 export type ReadOnlyCapability = 'IDENTITY_READ' | 'ACCESS_GRAPH_READ' | 'USAGE_READ';
+const readOnlyCapabilities: readonly ReadOnlyCapability[] = [
+  'IDENTITY_READ',
+  'ACCESS_GRAPH_READ',
+  'USAGE_READ',
+];
 
 export interface ConnectorManifest {
   readonly protocolVersion: typeof protocolVersion;
@@ -14,6 +19,9 @@ export function assertReadOnlyManifest(manifest: ConnectorManifest): void {
   if (!/^[a-z][a-z0-9-]{2,62}$/.test(manifest.id)) throw new Error('Invalid connector ID');
   if (!manifest.capabilities.length || !manifest.minimumScopes.length) {
     throw new Error('Read-only connector manifests require capabilities and scopes');
+  }
+  if (!manifest.capabilities.every((capability) => readOnlyCapabilities.includes(capability))) {
+    throw new Error('Connector manifests cannot declare write capabilities');
   }
 }
 

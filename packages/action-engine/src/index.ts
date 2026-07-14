@@ -184,9 +184,10 @@ export class ControlledActionEngine {
     const action = await this.requireAction(tenantId, actionId);
     if (action.status !== 'requested') throw new Error('Only requested actions can be approved');
     const approver = canonicalActor(input.approver);
+    const requester = canonicalActor(action.requestedBy);
     if (!approver || !input.reason.trim()) throw new Error('Approver and reason are required');
     const now = this.now();
-    if (approver === action.requestedBy) {
+    if (approver === requester) {
       if (!input.breakGlass) throw new Error('Requester cannot approve their own action');
       const expiry = new Date(input.breakGlass.expiresAt);
       if (
@@ -209,6 +210,7 @@ export class ControlledActionEngine {
     };
     const updated = {
       ...action,
+      requestedBy: requester,
       status: 'approved' as const,
       approvals: [...action.approvals, approval],
     };
@@ -233,7 +235,10 @@ export class ControlledActionEngine {
     if (!normalizedExecutor) throw new Error('Executor is required');
     const approval = action.approvals.at(-1);
     if (!approval) throw new Error('Action approval is required');
-    if (normalizedExecutor === action.requestedBy || normalizedExecutor === approval.approver) {
+    if (
+      normalizedExecutor === canonicalActor(action.requestedBy) ||
+      normalizedExecutor === canonicalActor(approval.approver)
+    ) {
       throw new Error('Requester, approver, and executor must be distinct');
     }
     const adapter = this.requireSupportedMockAction(action.provider, action.kind);
