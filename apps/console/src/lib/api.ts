@@ -15,6 +15,7 @@ import type {
   WorkflowDefinition,
   WorkflowExecution,
   ControlledAction,
+  TestTenantActivationSummary,
 } from '@aegis/api-contract';
 
 export type {
@@ -36,6 +37,7 @@ export type {
   WorkflowDefinition,
   WorkflowExecution,
   ControlledAction,
+  TestTenantActivationSummary,
 } from '@aegis/api-contract';
 
 export interface AegisApi {
@@ -80,6 +82,7 @@ export interface AegisApi {
   listWorkflowTemplates(): Promise<readonly WorkflowDefinition[]>;
   dryRunWorkflow(tenantId: string, input: DryRunWorkflowInput): Promise<WorkflowExecution>;
   listActions(tenantId: string): Promise<readonly ControlledAction[]>;
+  listTestActivations(tenantId: string): Promise<readonly TestTenantActivationSummary[]>;
   approveAction(
     tenantId: string,
     actionId: string,
@@ -112,6 +115,19 @@ let sampleActions: readonly ControlledAction[] = [
     approvals: [],
     executions: [],
     providerMutation: false,
+  },
+];
+
+const sampleTestActivations: readonly TestTenantActivationSummary[] = [
+  {
+    id: 'test-activation:demo-okta',
+    provider: 'mock-okta',
+    environment: 'test',
+    allowedActionKinds: ['disable_account'],
+    grantedScopes: ['users.disable'],
+    activatedBy: 'operator@acme.dev',
+    activatedAt: '2026-07-14T18:00:00.000Z',
+    expiresAt: '2026-07-15T18:00:00.000Z',
   },
 ];
 
@@ -526,6 +542,9 @@ export const demoApi: AegisApi = {
   async listActions() {
     return sampleActions;
   },
+  async listTestActivations() {
+    return sampleTestActivations;
+  },
   async approveAction(_tenantId, actionId, input) {
     const action = sampleActions.find((item) => item.id === actionId);
     if (!action) throw new Error('Action not found.');
@@ -766,6 +785,11 @@ export function createHttpApi(baseUrl: string): AegisApi {
       requestJson<readonly ControlledAction[]>(
         baseUrl,
         `/v1/tenants/${encodeURIComponent(tenantId)}/actions`,
+      ),
+    listTestActivations: (tenantId) =>
+      requestJson<readonly TestTenantActivationSummary[]>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/test-activations`,
       ),
     approveAction: (tenantId, actionId, input) =>
       requestJson<ControlledAction>(

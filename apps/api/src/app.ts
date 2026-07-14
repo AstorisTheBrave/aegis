@@ -28,6 +28,8 @@ import type { DiscoveryManager } from './discovery.js';
 import type { DiscoveryReviewPolicyManager } from './review-policies.js';
 import type { WorkflowManager } from './workflows.js';
 import type { ActionManager, OffboardingActionInput } from './actions.js';
+import type { ProviderCertificationManager, ProviderCertificationInput } from './certifications.js';
+import type { CreateTestTenantActivationInput } from '@aegis/provider-certification';
 
 export type { FindingReader } from './findings.js';
 export type { CampaignEvidenceReader } from './evidence.js';
@@ -60,6 +62,7 @@ export interface ApiServices {
   readonly policyCampaigns?: PolicyReviewCampaignManager;
   readonly workflows?: WorkflowManager;
   readonly actions?: ActionManager;
+  readonly certifications?: ProviderCertificationManager;
 }
 
 function isStringArray(value: unknown): value is readonly string[] {
@@ -237,6 +240,63 @@ function isOffboardingActionInput(value: unknown): value is OffboardingActionInp
   );
 }
 
+function isTestTenantActivationInput(value: unknown): value is CreateTestTenantActivationInput {
+  if (!value || typeof value !== 'object') return false;
+  const input = value as Record<string, unknown>;
+  return (
+    ['mock-github', 'mock-okta', 'mock-google-workspace'].includes(String(input.provider)) &&
+    input.environment === 'test' &&
+    Array.isArray(input.allowedActionKinds) &&
+    input.allowedActionKinds.every((kind) =>
+      ['disable_account', 'revoke_sessions', 'remove_group_membership'].includes(String(kind)),
+    ) &&
+    isStringArray(input.grantedScopes) &&
+    typeof input.activatedBy === 'string' &&
+    typeof input.expiresAt === 'string'
+  );
+}
+
+function isProviderCertificationInput(value: unknown): value is ProviderCertificationInput {
+  if (!value || typeof value !== 'object') return false;
+  const input = value as Record<string, unknown>;
+  const manifest = input.manifest as Record<string, unknown> | undefined;
+  const fixture = input.fixture as Record<string, unknown> | undefined;
+  return (
+    typeof input.activationId === 'string' &&
+    typeof input.certifiedBy === 'string' &&
+    !!manifest &&
+    typeof manifest.protocolVersion === 'string' &&
+    typeof manifest.id === 'string' &&
+    typeof manifest.vendor === 'string' &&
+    isStringArray(manifest.capabilities) &&
+    isStringArray(manifest.authenticationModes) &&
+    isStringArray(manifest.minimumScopes) &&
+    typeof manifest.imageDigest === 'string' &&
+    !!fixture &&
+    typeof fixture.provider === 'string' &&
+    Array.isArray(fixture.exchanges) &&
+    fixture.exchanges.every(
+      (exchange) =>
+        !!exchange &&
+        typeof exchange === 'object' &&
+        typeof (exchange as Record<string, unknown>).method === 'string' &&
+        typeof (exchange as Record<string, unknown>).url === 'string' &&
+        typeof (exchange as Record<string, unknown>).responseStatus === 'number',
+    ) &&
+    Array.isArray(input.actionProbes) &&
+    input.actionProbes.length > 0 &&
+    input.actionProbes.every(
+      (probe) =>
+        !!probe &&
+        typeof probe === 'object' &&
+        ['disable_account', 'revoke_sessions', 'remove_group_membership'].includes(
+          String((probe as Record<string, unknown>).kind),
+        ) &&
+        isStringArray((probe as Record<string, unknown>).requiredScopes),
+    )
+  );
+}
+
 function isCampaignDecisionInput(value: unknown): value is RecordCampaignDecisionInput {
   if (!value || typeof value !== 'object') return false;
   const input = value as Record<string, unknown>;
@@ -302,6 +362,54 @@ export function createApp(graph: AccessGraphRepository, services: ApiServices = 
   const findings = services.findings ?? new GraphFindingReader(graph);
   app.get('/health', async () => ({ status: 'ok' }));
   app.get('/ready', async () => ({ status: 'ready' }));
+  app.get<{ Params: { tenantId: string } }>(
+    '/v1/tenants/:tenantId/test-activations',
+    async (request, reply) => {
+      if (!services.certifications)
+        return reply.code(501).send({ error: 'provider_certification_not_configured' });
+      return services.certifications.listActivations(request.params.tenantId);
+    },
+  );
+  app.post<{ Params: { tenantId: string }; Body: unknown }>(
+    '/v1/tenants/:tenantId/test-activations',
+    async (request, reply) => {
+      if (!isTestTenantActivationInput(request.body))
+        return reply.code(400).send({ error: 'invalid_test_tenant_activation' });
+      if (!services.certifications)
+        return reply.code(501).send({ error: 'provider_certification_not_configured' });
+      try {
+        return await services.certifications.activate(request.params.tenantId, request.body);
+      } catch (cause) {
+        return reply.code(400).send({
+          error: cause instanceof Error ? cause.message : 'test_tenant_activation_failed',
+        });
+      }
+    },
+  );
+  app.get<{ Params: { tenantId: string } }>(
+    '/v1/tenants/:tenantId/provider-certifications',
+    async (request, reply) => {
+      if (!services.certifications)
+        return reply.code(501).send({ error: 'provider_certification_not_configured' });
+      return services.certifications.listCertifications(request.params.tenantId);
+    },
+  );
+  app.post<{ Params: { tenantId: string }; Body: unknown }>(
+    '/v1/tenants/:tenantId/provider-certifications',
+    async (request, reply) => {
+      if (!isProviderCertificationInput(request.body))
+        return reply.code(400).send({ error: 'invalid_provider_certification' });
+      if (!services.certifications)
+        return reply.code(501).send({ error: 'provider_certification_not_configured' });
+      try {
+        return await services.certifications.certify(request.params.tenantId, request.body);
+      } catch (cause) {
+        return reply.code(400).send({
+          error: cause instanceof Error ? cause.message : 'provider_certification_failed',
+        });
+      }
+    },
+  );
   app.get<{ Params: { tenantId: string } }>(
     '/v1/tenants/:tenantId/actions',
     async (request, reply) => {

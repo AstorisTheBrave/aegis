@@ -10,6 +10,7 @@ import {
   PostgresSaasCatalogRepository,
   PostgresSyncRunStore,
   PostgresWorkflowRepository,
+  PostgresProviderCertificationRepository,
 } from '@open-saas-governance/postgres-store';
 import { ExtensionRegistry } from '@aegis/extension-registry';
 import { GraphReviewCampaignManager, PolicyReviewCampaignManager } from './review-campaigns.js';
@@ -20,6 +21,7 @@ import { CatalogDiscoveryManager } from './discovery.js';
 import { DiscoveryReviewPolicyManager } from './review-policies.js';
 import { WorkflowManager } from './workflows.js';
 import { ActionManager } from './actions.js';
+import { ProviderCertificationManager } from './certifications.js';
 import { runMigrations } from './migrations.js';
 
 export interface RuntimeConfig {
@@ -60,6 +62,10 @@ export async function createRuntime(
     );
     const campaigns = new GraphReviewCampaignManager(graph, reviewRepository, audit);
     const reviewPolicies = new DiscoveryReviewPolicyManager(discovery);
+    const certifications = new ProviderCertificationManager(
+      new PostgresProviderCertificationRepository(pool),
+      audit,
+    );
     const app = createApp(graph, {
       campaigns,
       campaignEvidence: new StoredCampaignEvidenceReader(reviewRepository, audit),
@@ -68,7 +74,13 @@ export async function createRuntime(
       reviewPolicies,
       policyCampaigns: new PolicyReviewCampaignManager(reviewPolicies, reviewRepository, audit),
       workflows: new WorkflowManager(new PostgresWorkflowRepository(pool), audit),
-      actions: new ActionManager(new PostgresActionRepository(pool), audit),
+      actions: new ActionManager(
+        new PostgresActionRepository(pool),
+        audit,
+        undefined,
+        certifications.activationRegistry,
+      ),
+      certifications,
       syncRuns: new PostgresSyncRunStore(pool),
     });
     return {

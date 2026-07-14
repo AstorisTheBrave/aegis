@@ -26,6 +26,10 @@ const controlledActionsMigration = await readFile(
   new URL('../migrations/0008_controlled_actions.sql', import.meta.url),
   'utf8',
 );
+const providerCertificationMigration = await readFile(
+  new URL('../migrations/0009_provider_certification.sql', import.meta.url),
+  'utf8',
+);
 
 describe('0001 access graph migration', () => {
   it('keeps every graph table tenant-scoped and referentially sound', () => {
@@ -87,5 +91,21 @@ describe('0008 controlled actions migration', () => {
     expect(controlledActionsMigration).toContain('CREATE TABLE governance_action_approvals');
     expect(controlledActionsMigration).toContain('CREATE TABLE governance_action_executions');
     expect(controlledActionsMigration).toContain('UNIQUE (tenant_id, idempotency_key)');
+  });
+});
+
+describe('0009 provider certification migration', () => {
+  it('keeps test activations and their certifications tenant-scoped', () => {
+    expect(providerCertificationMigration).toContain(
+      'CREATE TABLE governance_test_tenant_activations',
+    );
+    expect(providerCertificationMigration).toContain(
+      'CREATE TABLE governance_provider_certifications',
+    );
+    expect(providerCertificationMigration).toContain('PRIMARY KEY (tenant_id, id)');
+    expect(providerCertificationMigration).toContain(
+      'REFERENCES governance_test_tenant_activations',
+    );
+    expect(providerCertificationMigration).toContain('CHECK (expires_at > activated_at)');
   });
 });

@@ -13,6 +13,7 @@ import type {
   ControlledAction,
   CreateActionInput,
 } from '@aegis/action-contract';
+import type { ActionKind, MockProviderId } from '@aegis/action-contract';
 
 export type { CatalogApplication, CatalogOwner, DiscoveryObservation, DiscoveryQueueItem };
 export type { PolicyEvaluation };
@@ -24,6 +25,30 @@ export type {
   ControlledAction,
   CreateActionInput,
 };
+
+export interface TestTenantActivationSummary {
+  readonly id: string;
+  readonly provider: MockProviderId;
+  readonly environment: 'test';
+  readonly allowedActionKinds: readonly ActionKind[];
+  readonly grantedScopes: readonly string[];
+  readonly activatedBy: string;
+  readonly activatedAt: string;
+  readonly expiresAt: string;
+}
+
+export interface ProviderCertificationSummary {
+  readonly id: string;
+  readonly activationId: string;
+  readonly provider: MockProviderId;
+  readonly connectorId: string;
+  readonly fixtureDigest: string;
+  readonly endpointInventory: readonly string[];
+  readonly certifiedBy: string;
+  readonly certifiedAt: string;
+  readonly status: 'test_tenant_certified';
+  readonly providerMutation: false;
+}
 
 export type AccessStatus = 'active' | 'requires_review' | 'suspended';
 

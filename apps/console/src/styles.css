@@ -470,6 +470,28 @@ h1 {
 .action-card dd {
   text-align: right;
 }
+.test-activation-status {
+  align-items: center;
+  background: #f6fafc;
+  border: 1px solid #d8e6ef;
+  border-left: 3px solid #4f88a9;
+  border-radius: 7px;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 15px 17px;
+}
+.test-activation-status h2 {
+  color: #314b60;
+  font-size: 15px;
+  margin: 2px 0 4px;
+}
+.test-activation-status p:last-child {
+  color: #667889;
+  font-size: 11px;
+  margin: 0;
+}
 .action-controls {
   display: flex;
   gap: 8px;

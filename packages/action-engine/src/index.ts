@@ -35,6 +35,15 @@ export interface CertifiedMockAdapter {
   compensate(action: ControlledAction): Promise<{ receipt: string }>;
 }
 
+export interface ActionExecutionGate {
+  authorize(
+    tenantId: string,
+    provider: MockProviderId,
+    kind: ActionKind,
+    requiredScopes: readonly string[],
+  ): Promise<void>;
+}
+
 export class InMemoryActionRepository implements ActionRepository {
   readonly #actions = new Map<string, ControlledAction>();
 
@@ -134,6 +143,7 @@ export class ControlledActionEngine {
     private readonly policies: readonly ActionPolicy[] = defaultMockActionPolicies,
     private readonly now: () => Date = () => new Date(),
     private readonly createId: () => string = randomUUID,
+    private readonly executionGate?: ActionExecutionGate,
   ) {
     this.#adapters = new Map(adapters.map((adapter) => [adapter.provider, adapter]));
   }
@@ -242,6 +252,12 @@ export class ControlledActionEngine {
       throw new Error('Requester, approver, and executor must be distinct');
     }
     const adapter = this.requireSupportedMockAction(action.provider, action.kind);
+    await this.executionGate?.authorize(
+      tenantId,
+      action.provider,
+      action.kind,
+      action.requiredScopes,
+    );
     const attempt = action.executions.length + 1;
     if (attempt > action.maxAttempts) throw new Error('Action retry limit reached');
     const startedAt = this.now().toISOString();
@@ -298,6 +314,12 @@ export class ControlledActionEngine {
     const normalizedExecutor = canonicalActor(executor);
     if (!normalizedExecutor) throw new Error('Executor is required');
     const adapter = this.requireSupportedMockAction(action.provider, action.kind);
+    await this.executionGate?.authorize(
+      tenantId,
+      action.provider,
+      action.kind,
+      action.requiredScopes,
+    );
     const startedAt = this.now().toISOString();
     const result = await adapter.compensate(action);
     const execution: ActionExecution = {
