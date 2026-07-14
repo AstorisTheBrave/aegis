@@ -17,6 +17,7 @@ import { AssistancePanel } from './features/assistance/AssistancePanel.js';
 import {
   aegisApi,
   type FindingDetail,
+  type FindingListItem,
   type CatalogApplication,
   type DiscoveryQueueItem,
   type IdentitySummary,
@@ -39,6 +40,7 @@ export function AegisConsole() {
   const [identities, setIdentities] = useState<readonly IdentitySummary[]>([]);
   const [selectedIdentityId, setSelectedIdentityId] = useState('alice-example');
   const [finding, setFinding] = useState<FindingDetail>();
+  const [findings, setFindings] = useState<readonly FindingListItem[]>([]);
   const [selectedFindingId, setSelectedFindingId] = useState<string>();
   const [campaigns, setCampaigns] = useState<readonly ReviewCampaignSummary[]>([]);
   const [campaignsLoading, setCampaignsLoading] = useState(true);
@@ -89,7 +91,9 @@ export function AegisConsole() {
   useEffect(() => {
     let active = true;
     void aegisApi.listFindings(tenantId).then((next) => {
-      if (active) setSelectedFindingId(next[0]?.id);
+      if (!active) return;
+      setFindings(next);
+      setSelectedFindingId(next[0]?.id);
     });
     return () => {
       active = false;
@@ -531,7 +535,14 @@ export function AegisConsole() {
           <IdentityTable
             identities={identities}
             loading={loading}
-            onSelect={(identity) => setSelectedIdentityId(identity.id)}
+            onSelect={(identity) => {
+              setSelectedIdentityId(identity.id);
+              setSelectedFindingId(
+                findings.find(
+                  (item) => item.status === 'open' && item.identity === identity.displayName,
+                )?.id,
+              );
+            }}
             selectedIdentityId={selectedIdentity?.id}
           />
           <footer className="table-footer">

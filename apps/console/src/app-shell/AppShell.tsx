@@ -62,6 +62,11 @@ export function AppShell({
   activeNavigation = 'Inventory',
   onNavigate,
 }: AppShellProps) {
+  const breadcrumb =
+    activeNavigation === 'Inventory'
+      ? { section: 'Inventory', page: 'Identities' }
+      : { section: 'Workspace', page: activeNavigation };
+
   return (
     <main className={`app-shell ${navigationOpen ? 'navigation-open' : ''}`}>
       <aside className="sidebar" aria-label="Primary navigation">
@@ -114,9 +119,9 @@ export function AppShell({
             >
               <Menu aria-hidden="true" size={18} />
             </button>
-            <span>Inventory</span>
+            <span>{breadcrumb.section}</span>
             <ChevronRight aria-hidden="true" size={14} />
-            <strong>Identities</strong>
+            <strong>{breadcrumb.page}</strong>
           </div>
           <label className="global-search">
             <span className="sr-only">Search identities, resources, roles</span>
