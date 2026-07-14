@@ -1,0 +1,32 @@
+name: Connector proposal
+description: Propose a read-only connector with verifiable access facts.
+title: 'connector: '
+labels: [connector]
+body:
+  - type: input
+    id: provider
+    attributes:
+      label: Provider and API version
+    validations:
+      required: true
+  - type: textarea
+    id: scopes
+    attributes:
+      label: Exact read scopes and endpoints
+      description: List every provider scope and endpoint. Write access is not accepted in Phase 1.
+    validations:
+      required: true
+  - type: textarea
+    id: graph
+    attributes:
+      label: Normalized graph facts
+      description: Describe identities, resources, entitlements, and grants produced.
+    validations:
+      required: true
+  - type: textarea
+    id: proof
+    attributes:
+      label: Pinned source, fixtures, and no-write proof
+      description: Include a pinned revision or digest and tests that prove no provider mutation.
+    validations:
+      required: true

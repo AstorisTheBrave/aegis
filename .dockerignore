@@ -1,0 +1,12 @@
+.git
+.github
+.private
+.firecrawl
+node_modules
+**/node_modules
+**/dist
+**/coverage
+.env
+.env.*
+!deploy/env.example
+console-*-review.png

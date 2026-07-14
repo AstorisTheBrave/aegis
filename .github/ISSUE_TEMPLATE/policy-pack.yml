@@ -1,0 +1,31 @@
+name: Policy pack proposal
+description: Propose deterministic, source-linked access policy rules.
+title: 'policy: '
+labels: [policy-pack]
+body:
+  - type: input
+    id: pack
+    attributes:
+      label: Policy pack name and version
+    validations:
+      required: true
+  - type: textarea
+    id: rules
+    attributes:
+      label: Rules and severity
+      description: Include stable rule identifiers and their intended findings.
+    validations:
+      required: true
+  - type: textarea
+    id: facts
+    attributes:
+      label: Required graph facts and source evidence
+    validations:
+      required: true
+  - type: textarea
+    id: fixtures
+    attributes:
+      label: Fixtures and deterministic test proof
+      description: Include edge cases and explain why evaluation needs no network call.
+    validations:
+      required: true

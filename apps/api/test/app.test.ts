@@ -32,6 +32,18 @@ async function createGraph() {
 }
 
 const services: ApiServices = {
+  campaignEvidence: {
+    async export(tenantId, campaignId) {
+      return {
+        format: 'aegis.review-evidence.v1' as const,
+        tenantId,
+        exportedAt: '2026-07-14T00:00:00.000Z',
+        campaignId,
+        files: [{ name: 'campaign.json' as const, content: '{}', sha256: 'abc123' }],
+        manifestSha256: 'manifest123',
+      };
+    },
+  },
   syncRuns: {
     async start() {
       throw new Error('not used');
@@ -109,6 +121,7 @@ const services: ApiServices = {
               route: 'unassigned' as const,
               status: 'open' as const,
               decisionCount: 0,
+              decisions: [],
             },
           ],
         },
@@ -194,6 +207,9 @@ describe('Aegis API', () => {
         })
       ).json(),
     ).toMatchObject({ status: 'complete' });
+    expect(
+      (await app.inject('/v1/tenants/acme/review-campaigns/campaign:1/evidence/export')).json(),
+    ).toMatchObject({ format: 'aegis.review-evidence.v1', campaignId: 'campaign:1' });
     const decision = await app.inject({
       method: 'POST',
       url: '/v1/tenants/acme/reviews/review:PRV-2025-00073/decisions',

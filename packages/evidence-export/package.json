@@ -13,6 +13,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@aegis/reviews": "workspace:*",
     "@open-saas-governance/audit-ledger": "workspace:*"
   },
   "devDependencies": {

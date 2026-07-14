@@ -4,8 +4,14 @@ import { AppShell } from './app-shell/AppShell.js';
 import { ExportEvidenceButton } from './features/evidence/ExportEvidenceButton.js';
 import { FindingPanel } from './features/findings/FindingPanel.js';
 import { IdentityTable } from './features/inventory/IdentityTable.js';
+import { CampaignList } from './features/reviews/CampaignList.js';
 import { DecisionControls } from './features/reviews/DecisionControls.js';
-import { aegisApi, type FindingDetail, type IdentitySummary } from './lib/api.js';
+import {
+  aegisApi,
+  type FindingDetail,
+  type IdentitySummary,
+  type ReviewCampaignSummary,
+} from './lib/api.js';
 import './styles.css';
 
 const tenantId = 'acme-platform';
@@ -17,6 +23,8 @@ export function AegisConsole() {
   const [identities, setIdentities] = useState<readonly IdentitySummary[]>([]);
   const [selectedIdentityId, setSelectedIdentityId] = useState('alice-example');
   const [finding, setFinding] = useState<FindingDetail>();
+  const [campaigns, setCampaigns] = useState<readonly ReviewCampaignSummary[]>([]);
+  const [campaignsLoading, setCampaignsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
@@ -52,10 +60,25 @@ export function AegisConsole() {
     };
   }, [selectedIdentityId]);
 
+  useEffect(() => {
+    let active = true;
+    void aegisApi.listReviewCampaigns(tenantId).then((next) => {
+      if (!active) return;
+      setCampaigns(next);
+      setCampaignsLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const selectedIdentity = useMemo(
     () => identities.find((identity) => identity.id === selectedIdentityId),
     [identities, selectedIdentityId],
   );
+  const campaignTask = campaigns
+    .flatMap((campaign) => campaign.tasks.map((task) => ({ campaign, task })))
+    .find(({ task }) => task.findingId === finding?.id);
 
   return (
     <AppShell
@@ -63,13 +86,29 @@ export function AegisConsole() {
         <>
           <FindingPanel finding={finding} />
           <DecisionControls
-            disabled={!finding}
+            disabled={!finding || !campaignTask}
             onSubmit={async (input) => {
-              if (!finding) return;
-              await aegisApi.submitReviewDecision(tenantId, `review:${finding.id}`, input);
+              if (!campaignTask)
+                throw new Error('No review campaign task is available for this finding.');
+              await aegisApi.recordCampaignDecision(
+                tenantId,
+                campaignTask.campaign.id,
+                campaignTask.task.id,
+                {
+                  decision:
+                    input.decision === 'revocation_requested' ? 'remove_recommended' : 'retain',
+                  reviewer: 'Aegis Admin',
+                  rationale: input.comment || 'Reviewer decision recorded in the Aegis console.',
+                },
+              );
             }}
           />
-          <ExportEvidenceButton api={aegisApi} tenantId={tenantId} />
+          <CampaignList campaigns={campaigns} loading={campaignsLoading} />
+          <ExportEvidenceButton
+            api={aegisApi}
+            campaignId={campaignTask?.campaign.id}
+            tenantId={tenantId}
+          />
         </>
       }
       evidenceOpen={evidenceOpen}

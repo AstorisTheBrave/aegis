@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@aegis/api-contract": "workspace:*",
+    "@aegis/evidence-export": "workspace:*",
     "@aegis/findings": "workspace:*",
     "@aegis/ingestion": "workspace:*",
     "@aegis/reviews": "workspace:*",
