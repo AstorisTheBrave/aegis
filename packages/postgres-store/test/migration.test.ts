@@ -22,6 +22,10 @@ const workflowMigration = await readFile(
   new URL('../migrations/0007_workflows.sql', import.meta.url),
   'utf8',
 );
+const controlledActionsMigration = await readFile(
+  new URL('../migrations/0008_controlled_actions.sql', import.meta.url),
+  'utf8',
+);
 
 describe('0001 access graph migration', () => {
   it('keeps every graph table tenant-scoped and referentially sound', () => {
@@ -74,5 +78,14 @@ describe('0007 workflow migration', () => {
     expect(workflowMigration).toContain('CREATE TABLE governance_workflow_definitions');
     expect(workflowMigration).toContain('CREATE TABLE governance_workflow_executions');
     expect(workflowMigration).toContain('PRIMARY KEY (tenant_id, id)');
+  });
+});
+
+describe('0008 controlled actions migration', () => {
+  it('keeps action requests, approvals, and executions tenant-scoped and idempotent', () => {
+    expect(controlledActionsMigration).toContain('CREATE TABLE governance_controlled_actions');
+    expect(controlledActionsMigration).toContain('CREATE TABLE governance_action_approvals');
+    expect(controlledActionsMigration).toContain('CREATE TABLE governance_action_executions');
+    expect(controlledActionsMigration).toContain('UNIQUE (tenant_id, idempotency_key)');
   });
 });

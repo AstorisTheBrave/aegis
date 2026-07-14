@@ -1,4 +1,5 @@
 import type { AuditLedger } from '@open-saas-governance/audit-ledger';
+import { randomUUID } from 'node:crypto';
 import {
   validateWorkflowDefinition,
   type DryRunWorkflowInput,
@@ -45,6 +46,7 @@ export class WorkflowDryRunEngine {
     private readonly repository: WorkflowRepository,
     private readonly audit: AuditLedger,
     private readonly now: () => Date = () => new Date(),
+    private readonly createExecutionNonce: () => string = randomUUID,
   ) {}
 
   async preview(
@@ -76,7 +78,7 @@ export class WorkflowDryRunEngine {
         ? 'requires_approval'
         : 'completed';
     const execution: WorkflowExecution = {
-      id: `dry-run:${tenantId}:${definition.id}:${createdAt}`,
+      id: `dry-run:${tenantId}:${definition.id}:${createdAt}:${this.createExecutionNonce()}`,
       tenantId,
       definitionId: definition.id,
       definitionVersion: definition.version,

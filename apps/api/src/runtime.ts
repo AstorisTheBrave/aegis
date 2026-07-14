@@ -2,6 +2,7 @@ import { Buffer } from 'node:buffer';
 import { Pool } from 'pg';
 import {
   PostgresAccessGraphRepository,
+  PostgresActionRepository,
   PostgresAuditLedger,
   PostgresExtensionRegistryRepository,
   PostgresDiscoveryRepository,
@@ -18,6 +19,7 @@ import { createApp } from './app.js';
 import { CatalogDiscoveryManager } from './discovery.js';
 import { DiscoveryReviewPolicyManager } from './review-policies.js';
 import { WorkflowManager } from './workflows.js';
+import { ActionManager } from './actions.js';
 import { runMigrations } from './migrations.js';
 
 export interface RuntimeConfig {
@@ -66,6 +68,7 @@ export async function createRuntime(
       reviewPolicies,
       policyCampaigns: new PolicyReviewCampaignManager(reviewPolicies, reviewRepository, audit),
       workflows: new WorkflowManager(new PostgresWorkflowRepository(pool), audit),
+      actions: new ActionManager(new PostgresActionRepository(pool), audit),
       syncRuns: new PostgresSyncRunStore(pool),
     });
     return {

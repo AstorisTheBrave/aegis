@@ -1,17 +1,10 @@
 {
-  "name": "@aegis/api-contract",
+  "name": "@aegis/action-contract",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
-  },
-  "dependencies": {
-    "@aegis/action-contract": "workspace:*",
-    "@aegis/discovery": "workspace:*",
-    "@aegis/saas-catalog": "workspace:*",
-    "@aegis/review-policies": "workspace:*",
-    "@aegis/workflow-contract": "workspace:*"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

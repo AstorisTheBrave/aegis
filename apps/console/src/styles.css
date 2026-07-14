@@ -464,6 +464,48 @@ h1 {
   font-size: 13px;
   margin: 0;
 }
+.action-card dt {
+  max-width: 110px;
+}
+.action-card dd {
+  text-align: right;
+}
+.action-controls {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.action-controls button,
+.owner-assignment-button {
+  background: #0d3555;
+  border: 0;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 11px;
+  padding: 7px 10px;
+}
+.action-status {
+  background: #eef3f7;
+  border-radius: 999px;
+  color: #38536a;
+  font-size: 10px;
+  padding: 5px 8px;
+  text-transform: capitalize;
+}
+.action-status-completed {
+  background: #e8f5ec;
+  color: #247042;
+}
+.action-status-failed,
+.action-status-rejected {
+  background: #fce9e7;
+  color: #a63125;
+}
+.break-glass-toggle {
+  color: #7c5606;
+  font-size: 11px;
+  margin-top: 14px;
+}
 
 .discovery-card dl {
   border-top: 1px solid #edf1f4;

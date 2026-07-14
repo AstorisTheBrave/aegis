@@ -1,6 +1,8 @@
 import Fastify from 'fastify';
 import type {
   AssignCatalogOwnersInput,
+  ApproveActionInput,
+  CreateActionInput,
   CreatePolicyReviewCampaignInput,
   DryRunWorkflowInput,
   CreateCatalogApplicationInput,
@@ -25,6 +27,7 @@ import type { ExtensionRegistryManager } from './extensions.js';
 import type { DiscoveryManager } from './discovery.js';
 import type { DiscoveryReviewPolicyManager } from './review-policies.js';
 import type { WorkflowManager } from './workflows.js';
+import type { ActionManager, OffboardingActionInput } from './actions.js';
 
 export type { FindingReader } from './findings.js';
 export type { CampaignEvidenceReader } from './evidence.js';
@@ -56,6 +59,7 @@ export interface ApiServices {
   readonly reviewPolicies?: DiscoveryReviewPolicyManager;
   readonly policyCampaigns?: PolicyReviewCampaignManager;
   readonly workflows?: WorkflowManager;
+  readonly actions?: ActionManager;
 }
 
 function isStringArray(value: unknown): value is readonly string[] {
@@ -178,6 +182,61 @@ function isDryRunWorkflowInput(value: unknown): value is DryRunWorkflowInput {
   );
 }
 
+function isCreateActionInput(value: unknown): value is CreateActionInput {
+  if (!value || typeof value !== 'object') return false;
+  const input = value as Record<string, unknown>;
+  const target = input.target as Record<string, unknown> | undefined;
+  return (
+    ['mock-github', 'mock-okta', 'mock-google-workspace'].includes(String(input.provider)) &&
+    ['disable_account', 'revoke_sessions', 'remove_group_membership'].includes(
+      String(input.kind),
+    ) &&
+    !!target &&
+    typeof target.subjectId === 'string' &&
+    typeof target.displayName === 'string' &&
+    typeof input.requestedBy === 'string' &&
+    isStringArray(input.requiredScopes) &&
+    typeof input.idempotencyKey === 'string' &&
+    typeof input.rollbackNarrative === 'string' &&
+    (!('workflowExecutionId' in input) || typeof input.workflowExecutionId === 'string') &&
+    (!('maxAttempts' in input) || typeof input.maxAttempts === 'number')
+  );
+}
+
+function isApproveActionInput(value: unknown): value is ApproveActionInput {
+  if (!value || typeof value !== 'object') return false;
+  const input = value as Record<string, unknown>;
+  const breakGlass = input.breakGlass as Record<string, unknown> | undefined;
+  return (
+    typeof input.approver === 'string' &&
+    typeof input.reason === 'string' &&
+    (!('breakGlass' in input) ||
+      (!!breakGlass &&
+        typeof breakGlass.reason === 'string' &&
+        typeof breakGlass.expiresAt === 'string'))
+  );
+}
+
+function isExecutorInput(value: unknown): value is { executor: string } {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    typeof (value as Record<string, unknown>).executor === 'string'
+  );
+}
+
+function isOffboardingActionInput(value: unknown): value is OffboardingActionInput {
+  if (!value || typeof value !== 'object') return false;
+  const input = value as Record<string, unknown>;
+  const target = input.target as Record<string, unknown> | undefined;
+  return (
+    !!target &&
+    typeof target.subjectId === 'string' &&
+    typeof target.displayName === 'string' &&
+    typeof input.requestedBy === 'string'
+  );
+}
+
 function isCampaignDecisionInput(value: unknown): value is RecordCampaignDecisionInput {
   if (!value || typeof value !== 'object') return false;
   const input = value as Record<string, unknown>;
@@ -243,6 +302,116 @@ export function createApp(graph: AccessGraphRepository, services: ApiServices = 
   const findings = services.findings ?? new GraphFindingReader(graph);
   app.get('/health', async () => ({ status: 'ok' }));
   app.get('/ready', async () => ({ status: 'ready' }));
+  app.get<{ Params: { tenantId: string } }>(
+    '/v1/tenants/:tenantId/actions',
+    async (request, reply) => {
+      if (!services.actions) return reply.code(501).send({ error: 'actions_not_configured' });
+      return services.actions.list(request.params.tenantId);
+    },
+  );
+  app.post<{ Params: { tenantId: string }; Body: unknown }>(
+    '/v1/tenants/:tenantId/actions',
+    async (request, reply) => {
+      if (!isCreateActionInput(request.body))
+        return reply.code(400).send({ error: 'invalid_action' });
+      if (!services.actions) return reply.code(501).send({ error: 'actions_not_configured' });
+      try {
+        return await services.actions.request(request.params.tenantId, request.body);
+      } catch (cause) {
+        return reply
+          .code(400)
+          .send({ error: cause instanceof Error ? cause.message : 'action_request_failed' });
+      }
+    },
+  );
+  app.post<{ Params: { tenantId: string; actionId: string }; Body: unknown }>(
+    '/v1/tenants/:tenantId/actions/:actionId/approve',
+    async (request, reply) => {
+      if (!isApproveActionInput(request.body))
+        return reply.code(400).send({ error: 'invalid_action_approval' });
+      if (!services.actions) return reply.code(501).send({ error: 'actions_not_configured' });
+      try {
+        return await services.actions.approve(
+          request.params.tenantId,
+          request.params.actionId,
+          request.body,
+        );
+      } catch (cause) {
+        return reply
+          .code(400)
+          .send({ error: cause instanceof Error ? cause.message : 'action_approval_failed' });
+      }
+    },
+  );
+  app.post<{ Params: { tenantId: string; actionId: string }; Body: unknown }>(
+    '/v1/tenants/:tenantId/actions/:actionId/execute',
+    async (request, reply) => {
+      if (!isExecutorInput(request.body))
+        return reply.code(400).send({ error: 'invalid_action_executor' });
+      if (!services.actions) return reply.code(501).send({ error: 'actions_not_configured' });
+      try {
+        return await services.actions.execute(
+          request.params.tenantId,
+          request.params.actionId,
+          request.body.executor,
+        );
+      } catch (cause) {
+        return reply
+          .code(400)
+          .send({ error: cause instanceof Error ? cause.message : 'action_execution_failed' });
+      }
+    },
+  );
+  app.post<{ Params: { tenantId: string; actionId: string }; Body: unknown }>(
+    '/v1/tenants/:tenantId/actions/:actionId/compensate',
+    async (request, reply) => {
+      if (!isExecutorInput(request.body))
+        return reply.code(400).send({ error: 'invalid_action_executor' });
+      if (!services.actions) return reply.code(501).send({ error: 'actions_not_configured' });
+      try {
+        return await services.actions.compensate(
+          request.params.tenantId,
+          request.params.actionId,
+          request.body.executor,
+        );
+      } catch (cause) {
+        return reply
+          .code(400)
+          .send({ error: cause instanceof Error ? cause.message : 'action_compensation_failed' });
+      }
+    },
+  );
+  app.get<{ Params: { tenantId: string } }>(
+    '/v1/tenants/:tenantId/actions/evidence/export',
+    async (request, reply) => {
+      if (!services.actions) return reply.code(501).send({ error: 'actions_not_configured' });
+      return services.actions.exportEvidence(request.params.tenantId);
+    },
+  );
+  app.post<{ Params: { tenantId: string; executionId: string }; Body: unknown }>(
+    '/v1/tenants/:tenantId/workflow-executions/:executionId/offboarding-actions',
+    async (request, reply) => {
+      if (!isOffboardingActionInput(request.body))
+        return reply.code(400).send({ error: 'invalid_offboarding_action' });
+      if (!services.actions || !services.workflows)
+        return reply.code(501).send({ error: 'actions_not_configured' });
+      const execution = (await services.workflows.listExecutions(request.params.tenantId)).find(
+        (item) => item.id === request.params.executionId,
+      );
+      if (!execution) return reply.code(404).send({ error: 'workflow_execution_not_found' });
+      try {
+        return await services.actions.requestOffboarding(
+          request.params.tenantId,
+          request.params.executionId,
+          request.body,
+        );
+      } catch (cause) {
+        return reply.code(400).send({
+          error: cause instanceof Error ? cause.message : 'offboarding_action_request_failed',
+        });
+      }
+    },
+  );
   app.get('/v1/workflow-templates', async (_request, reply) => {
     if (!services.workflows) return reply.code(501).send({ error: 'workflows_not_configured' });
     return services.workflows.listTemplates();

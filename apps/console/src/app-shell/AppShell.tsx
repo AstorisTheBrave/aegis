@@ -9,6 +9,7 @@ const navigation = [
   'Resources',
   'Policies',
   'Workflows',
+  'Actions',
   'Controls',
   'Connectors',
   'Settings',

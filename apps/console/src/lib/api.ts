@@ -13,6 +13,7 @@ import type {
   DryRunWorkflowInput,
   WorkflowDefinition,
   WorkflowExecution,
+  ControlledAction,
 } from '@aegis/api-contract';
 
 export type {
@@ -32,6 +33,7 @@ export type {
   DryRunWorkflowInput,
   WorkflowDefinition,
   WorkflowExecution,
+  ControlledAction,
 } from '@aegis/api-contract';
 
 export interface AegisApi {
@@ -74,7 +76,41 @@ export interface AegisApi {
   ): Promise<CatalogApplication>;
   listWorkflowTemplates(): Promise<readonly WorkflowDefinition[]>;
   dryRunWorkflow(tenantId: string, input: DryRunWorkflowInput): Promise<WorkflowExecution>;
+  listActions(tenantId: string): Promise<readonly ControlledAction[]>;
+  approveAction(
+    tenantId: string,
+    actionId: string,
+    input: { approver: string; reason: string; breakGlass?: { reason: string; expiresAt: string } },
+  ): Promise<ControlledAction>;
+  executeAction(tenantId: string, actionId: string, executor: string): Promise<ControlledAction>;
+  compensateAction(tenantId: string, actionId: string, executor: string): Promise<ControlledAction>;
+  requestOffboardingActions(
+    tenantId: string,
+    executionId: string,
+    input: { target: { subjectId: string; displayName: string }; requestedBy: string },
+  ): Promise<readonly ControlledAction[]>;
 }
+
+let sampleActions: readonly ControlledAction[] = [
+  {
+    schemaVersion: 'action.v2',
+    id: 'action:mock-okta:alice',
+    tenantId: 'acme-platform',
+    provider: 'mock-okta',
+    kind: 'disable_account',
+    target: { subjectId: 'alice-example', displayName: 'Alice Example' },
+    requestedBy: 'Aegis Admin',
+    requestedAt: '2026-07-14T18:00:00.000Z',
+    requiredScopes: ['users.disable'],
+    idempotencyKey: 'demo:alice:okta',
+    rollbackNarrative: 'Re-enable the mock IdP account and restore session policy.',
+    maxAttempts: 3,
+    status: 'requested',
+    approvals: [],
+    executions: [],
+    providerMutation: false,
+  },
+];
 
 const sampleCatalog: readonly CatalogApplication[] = [
   {
@@ -448,7 +484,7 @@ export const demoApi: AegisApi = {
     if (!template) throw new Error('The requested workflow template was not found.');
     const createdAt = new Date().toISOString();
     return {
-      id: `dry-run:${tenantId}:${template.id}:${createdAt}`,
+      id: `dry-run:${tenantId}:${template.id}:${createdAt}:demo`,
       tenantId,
       definitionId: template.id,
       definitionVersion: template.version,
@@ -469,6 +505,115 @@ export const demoApi: AegisApi = {
         providerMutation: false,
       })),
     };
+  },
+  async listActions() {
+    return sampleActions;
+  },
+  async approveAction(_tenantId, actionId, input) {
+    const action = sampleActions.find((item) => item.id === actionId);
+    if (!action) throw new Error('Action not found.');
+    const approvedAt = new Date().toISOString();
+    const updated: ControlledAction = {
+      ...action,
+      status: 'approved',
+      approvals: [
+        ...action.approvals,
+        {
+          actionId,
+          approver: input.approver,
+          reason: input.reason,
+          approvedAt,
+          ...(input.breakGlass ? { breakGlass: input.breakGlass } : {}),
+        },
+      ],
+    };
+    sampleActions = sampleActions.map((item) => (item.id === actionId ? updated : item));
+    return updated;
+  },
+  async executeAction(_tenantId, actionId, executor) {
+    const action = sampleActions.find((item) => item.id === actionId);
+    if (!action) throw new Error('Action not found.');
+    const now = new Date().toISOString();
+    const updated: ControlledAction = {
+      ...action,
+      status: 'completed',
+      executions: [
+        ...action.executions,
+        {
+          actionId,
+          attempt: action.executions.length + 1,
+          executor,
+          startedAt: now,
+          completedAt: now,
+          status: 'completed',
+          providerReceipt: `mock:${action.provider}:${action.id}:applied`,
+        },
+      ],
+    };
+    sampleActions = sampleActions.map((item) => (item.id === actionId ? updated : item));
+    return updated;
+  },
+  async compensateAction(_tenantId, actionId, executor) {
+    const action = sampleActions.find((item) => item.id === actionId);
+    if (!action) throw new Error('Action not found.');
+    const now = new Date().toISOString();
+    const updated: ControlledAction = {
+      ...action,
+      status: 'compensated',
+      executions: [
+        ...action.executions,
+        {
+          actionId,
+          attempt: action.executions.length + 1,
+          executor,
+          startedAt: now,
+          completedAt: now,
+          status: 'compensated',
+          providerReceipt: `mock:${action.provider}:${action.id}:compensated`,
+        },
+      ],
+    };
+    sampleActions = sampleActions.map((item) => (item.id === actionId ? updated : item));
+    return updated;
+  },
+  async requestOffboardingActions(_tenantId, executionId, input) {
+    const created = (['mock-okta', 'mock-google-workspace', 'mock-github'] as const).map(
+      (provider, index): ControlledAction => ({
+        schemaVersion: 'action.v2',
+        id: `action:${executionId}:${provider}`,
+        tenantId: 'acme-platform',
+        workflowExecutionId: executionId,
+        provider,
+        kind:
+          index === 2
+            ? 'remove_group_membership'
+            : index === 1
+              ? 'revoke_sessions'
+              : 'disable_account',
+        target: input.target,
+        requestedBy: input.requestedBy,
+        requestedAt: new Date().toISOString(),
+        requiredScopes:
+          index === 2
+            ? ['org.members.write']
+            : index === 1
+              ? ['sessions.revoke']
+              : ['users.disable'],
+        idempotencyKey: `${executionId}:${provider}`,
+        rollbackNarrative: 'Restore the mock access state from immutable action evidence.',
+        maxAttempts: 3,
+        status: 'requested',
+        approvals: [],
+        executions: [],
+        providerMutation: false,
+      }),
+    );
+    const known = new Map(sampleActions.map((action) => [action.idempotencyKey, action]));
+    sampleActions = [
+      ...created.map((action) => known.get(action.idempotencyKey) ?? action),
+      ...sampleActions,
+    ];
+    return created.map((action) => known.get(action.idempotencyKey) ?? action);
   },
   async recordCampaignDecision(_tenantId, campaignId) {
     const campaign = sampleCampaigns.find((candidate) => candidate.id === campaignId);
@@ -593,6 +738,35 @@ export function createHttpApi(baseUrl: string): AegisApi {
       requestJson<WorkflowExecution>(
         baseUrl,
         `/v1/tenants/${encodeURIComponent(tenantId)}/workflows/dry-run`,
+        { method: 'POST', body: JSON.stringify(input) },
+      ),
+    listActions: (tenantId) =>
+      requestJson<readonly ControlledAction[]>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/actions`,
+      ),
+    approveAction: (tenantId, actionId, input) =>
+      requestJson<ControlledAction>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/actions/${encodeURIComponent(actionId)}/approve`,
+        { method: 'POST', body: JSON.stringify(input) },
+      ),
+    executeAction: (tenantId, actionId, executor) =>
+      requestJson<ControlledAction>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/actions/${encodeURIComponent(actionId)}/execute`,
+        { method: 'POST', body: JSON.stringify({ executor }) },
+      ),
+    compensateAction: (tenantId, actionId, executor) =>
+      requestJson<ControlledAction>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/actions/${encodeURIComponent(actionId)}/compensate`,
+        { method: 'POST', body: JSON.stringify({ executor }) },
+      ),
+    requestOffboardingActions: (tenantId, executionId, input) =>
+      requestJson<readonly ControlledAction[]>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/workflow-executions/${encodeURIComponent(executionId)}/offboarding-actions`,
         { method: 'POST', body: JSON.stringify(input) },
       ),
   };

@@ -9,6 +9,7 @@ const migrations = [
   '0005_saas_discovery.sql',
   '0006_policy_review_context.sql',
   '0007_workflows.sql',
+  '0008_controlled_actions.sql',
 ] as const;
 
 export async function runMigrations(pool: Pool): Promise<void> {
@@ -59,6 +60,15 @@ export async function runMigrations(pool: Pool): Promise<void> {
     await pool.query(
       `INSERT INTO governance_schema_migrations (name)
        VALUES ('0007_workflows.sql') ON CONFLICT (name) DO NOTHING`,
+    );
+  }
+  const actionsTable = await pool.query<{ exists: boolean }>(
+    `SELECT to_regclass('public.governance_controlled_actions') IS NOT NULL AS exists`,
+  );
+  if (actionsTable.rows[0]?.exists) {
+    await pool.query(
+      `INSERT INTO governance_schema_migrations (name)
+       VALUES ('0008_controlled_actions.sql') ON CONFLICT (name) DO NOTHING`,
     );
   }
   for (const migration of migrations) {

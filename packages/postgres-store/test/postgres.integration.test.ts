@@ -5,6 +5,7 @@ import { verifyAuditChain } from '@open-saas-governance/audit-ledger';
 import type { Finding } from '@aegis/findings';
 import { ReviewCampaignService } from '@aegis/reviews';
 import type { WorkflowDefinition, WorkflowExecution } from '@aegis/workflow-contract';
+import type { ActionApproval, ActionExecution, ControlledAction } from '@aegis/action-contract';
 import type { SignedExtensionArtifact } from '@aegis/extension-registry';
 import type { CatalogApplication } from '@aegis/saas-catalog';
 import { Pool } from 'pg';
@@ -12,6 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
   PostgresAccessGraphRepository,
+  PostgresActionRepository,
   PostgresAuditLedger,
   PostgresExtensionRegistryRepository,
   PostgresReviewCampaignRepository,
@@ -42,9 +44,13 @@ describeDatabase('PostgreSQL storage adapters', () => {
     import.meta.url,
   );
   const workflowMigrationUrl = new URL('../migrations/0007_workflows.sql', import.meta.url);
+  const actionMigrationUrl = new URL('../migrations/0008_controlled_actions.sql', import.meta.url);
 
   beforeAll(async () => {
     await pool.query(`DROP TABLE IF EXISTS
+      governance_action_executions,
+      governance_action_approvals,
+      governance_controlled_actions,
       governance_workflow_executions,
       governance_workflow_definitions,
       governance_review_task_decisions,
@@ -67,6 +73,7 @@ describeDatabase('PostgreSQL storage adapters', () => {
     await pool.query(await readFile(discoveryMigrationUrl, 'utf8'));
     await pool.query(await readFile(policyReviewMigrationUrl, 'utf8'));
     await pool.query(await readFile(workflowMigrationUrl, 'utf8'));
+    await pool.query(await readFile(actionMigrationUrl, 'utf8'));
   });
 
   afterAll(async () => {
@@ -209,6 +216,18 @@ describeDatabase('PostgreSQL storage adapters', () => {
     await expect(workflows.listExecutions('tenant-acme')).resolves.toMatchObject([
       { definitionId: 'leaver.v1', providerMutation: false },
     ]);
+
+    const actions = new PostgresActionRepository(pool);
+    const action = sampleControlledAction();
+    await actions.save(action);
+    await actions.recordApproval('tenant-acme', sampleActionApproval(action.id));
+    await actions.recordExecution('tenant-acme', sampleActionExecution(action.id));
+    await expect(
+      actions.findByIdempotencyKey('tenant-acme', action.idempotencyKey),
+    ).resolves.toMatchObject({
+      id: action.id,
+      providerMutation: false,
+    });
   });
 });
 
@@ -282,6 +301,48 @@ function sampleCatalogApplication(): CatalogApplication {
     approvedAlternatives: [],
     createdAt: '2026-07-14T10:06:00.000Z',
     updatedAt: '2026-07-14T10:06:00.000Z',
+  };
+}
+
+function sampleControlledAction(): ControlledAction {
+  return {
+    schemaVersion: 'action.v2',
+    id: 'action:tenant-acme:alice',
+    tenantId: 'tenant-acme',
+    provider: 'mock-okta',
+    kind: 'disable_account',
+    target: { subjectId: 'identity-alice', displayName: 'Alice Example' },
+    requestedBy: 'requester@example.com',
+    requestedAt: '2026-07-14T10:10:00.000Z',
+    requiredScopes: ['users.disable'],
+    idempotencyKey: 'leaver:alice:okta',
+    rollbackNarrative: 'Re-enable the mock account.',
+    maxAttempts: 3,
+    status: 'requested',
+    approvals: [],
+    executions: [],
+    providerMutation: false,
+  };
+}
+
+function sampleActionApproval(actionId: string): ActionApproval {
+  return {
+    actionId,
+    approver: 'approver@example.com',
+    reason: 'HRIS record verified.',
+    approvedAt: '2026-07-14T10:11:00.000Z',
+  };
+}
+
+function sampleActionExecution(actionId: string): ActionExecution {
+  return {
+    actionId,
+    attempt: 1,
+    executor: 'executor@example.com',
+    startedAt: '2026-07-14T10:12:00.000Z',
+    completedAt: '2026-07-14T10:12:01.000Z',
+    status: 'completed',
+    providerReceipt: 'mock:mock-okta:action:tenant-acme:alice:applied',
   };
 }
 

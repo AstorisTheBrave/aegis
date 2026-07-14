@@ -6,10 +6,24 @@ import type {
   WorkflowDefinition,
   WorkflowExecution,
 } from '@aegis/workflow-contract';
+import type {
+  ActionApproval,
+  ActionExecution,
+  ApproveActionInput,
+  ControlledAction,
+  CreateActionInput,
+} from '@aegis/action-contract';
 
 export type { CatalogApplication, CatalogOwner, DiscoveryObservation, DiscoveryQueueItem };
 export type { PolicyEvaluation };
 export type { DryRunWorkflowInput, WorkflowDefinition, WorkflowExecution };
+export type {
+  ActionApproval,
+  ActionExecution,
+  ApproveActionInput,
+  ControlledAction,
+  CreateActionInput,
+};
 
 export type AccessStatus = 'active' | 'requires_review' | 'suspended';
 
