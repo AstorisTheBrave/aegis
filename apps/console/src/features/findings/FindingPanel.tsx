@@ -1,4 +1,5 @@
 import type { FindingDetail } from '../../lib/api.js';
+import { ChevronRight, Diamond, TriangleAlert } from 'lucide-react';
 
 export function FindingPanel({ finding }: { readonly finding?: FindingDetail }) {
   if (!finding) {
@@ -12,7 +13,7 @@ export function FindingPanel({ finding }: { readonly finding?: FindingDetail }) 
       <p className="finding-id">Finding: {finding.id}</p>
       <div className="severity-heading">
         <span className={`severity severity-${finding.severity}`} aria-hidden="true">
-          ▲
+          <TriangleAlert size={18} strokeWidth={1.9} />
         </span>
         <div>
           <h2>{finding.title}</h2>
@@ -59,7 +60,7 @@ export function FindingPanel({ finding }: { readonly finding?: FindingDetail }) 
           {finding.evidence.map((item) => (
             <li key={item.id}>
               <span className="evidence-icon" aria-hidden="true">
-                ◇
+                <Diamond size={15} strokeWidth={1.8} />
               </span>
               <span>
                 <strong>{item.kind}</strong>
@@ -67,7 +68,7 @@ export function FindingPanel({ finding }: { readonly finding?: FindingDetail }) 
                 <small>{item.detail}</small>
               </span>
               <button aria-label={`View ${item.title} evidence`} type="button">
-                ›
+                <ChevronRight aria-hidden="true" size={15} strokeWidth={1.8} />
               </button>
             </li>
           ))}

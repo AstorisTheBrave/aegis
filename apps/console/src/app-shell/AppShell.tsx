@@ -1,19 +1,40 @@
 import type { ReactNode } from 'react';
+import {
+  Bot,
+  Box,
+  ChevronDown,
+  ChevronRight,
+  ClipboardCheck,
+  Command,
+  GitBranch,
+  HelpCircle,
+  KeyRound,
+  LayoutDashboard,
+  ListChecks,
+  Menu,
+  Network,
+  Search,
+  Settings,
+  ShieldCheck,
+  SlidersHorizontal,
+  UsersRound,
+  Workflow,
+} from 'lucide-react';
 
 const navigation = [
-  'Inventory',
-  'Findings',
-  'Reviews',
-  'Access',
-  'Identities',
-  'Resources',
-  'Policies',
-  'Workflows',
-  'Actions',
-  'Assistant',
-  'Controls',
-  'Connectors',
-  'Settings',
+  { label: 'Inventory', icon: LayoutDashboard },
+  { label: 'Findings', icon: ShieldCheck },
+  { label: 'Reviews', icon: ClipboardCheck },
+  { label: 'Access', icon: KeyRound },
+  { label: 'Identities', icon: UsersRound },
+  { label: 'Resources', icon: Box },
+  { label: 'Policies', icon: ListChecks },
+  { label: 'Workflows', icon: Workflow },
+  { label: 'Actions', icon: GitBranch },
+  { label: 'Assistant', icon: Bot },
+  { label: 'Controls', icon: SlidersHorizontal },
+  { label: 'Connectors', icon: Network },
+  { label: 'Settings', icon: Settings },
 ];
 
 interface AppShellProps {
@@ -56,10 +77,10 @@ export function AppShell({
         <button className="environment-switcher" type="button">
           <span>acme/platform</span>
           <small>Environment</small>
-          <span aria-hidden="true">⌄</span>
+          <ChevronDown aria-hidden="true" size={14} strokeWidth={1.8} />
         </button>
         <nav>
-          {navigation.map((label) => (
+          {navigation.map(({ label, icon: Icon }) => (
             <button
               aria-current={label === activeNavigation ? 'page' : undefined}
               className={`navigation-item ${label === activeNavigation ? 'is-active' : ''}`}
@@ -68,7 +89,7 @@ export function AppShell({
               type="button"
             >
               <span className="navigation-glyph" aria-hidden="true">
-                {label.slice(0, 1)}
+                <Icon size={13} strokeWidth={1.7} />
               </span>
               {label}
             </button>
@@ -91,15 +112,15 @@ export function AppShell({
               onClick={onNavigationToggle}
               type="button"
             >
-              ☰
+              <Menu aria-hidden="true" size={18} />
             </button>
             <span>Inventory</span>
-            <span aria-hidden="true">›</span>
+            <ChevronRight aria-hidden="true" size={14} />
             <strong>Identities</strong>
           </div>
           <label className="global-search">
             <span className="sr-only">Search identities, resources, roles</span>
-            <span aria-hidden="true">⌕</span>
+            <Search aria-hidden="true" size={14} strokeWidth={1.8} />
             <input
               onChange={(event) => onSearchChange(event.target.value)}
               placeholder="Search identities, resources, roles..."
@@ -108,10 +129,10 @@ export function AppShell({
           </label>
           <div className="topbar-actions">
             <button className="icon-button" type="button" aria-label="Open command palette">
-              ›_
+              <Command aria-hidden="true" size={15} strokeWidth={1.8} />
             </button>
             <button className="icon-button" type="button" aria-label="Open help">
-              ?
+              <HelpCircle aria-hidden="true" size={16} strokeWidth={1.8} />
             </button>
             <span className="topbar-avatar">AE</span>
           </div>

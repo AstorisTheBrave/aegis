@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { ChevronDown, ChevronLeft, ChevronRight, Search, SlidersHorizontal } from 'lucide-react';
 import { AppShell } from './app-shell/AppShell.js';
 import { ExportEvidenceButton } from './features/evidence/ExportEvidenceButton.js';
 import { FindingPanel } from './features/findings/FindingPanel.js';
@@ -509,11 +510,23 @@ export function AegisConsole() {
             </button>
           </div>
           <div className="filters" aria-label="Identity filters">
-            <span className="filter-search">⌕ Search people...</span>
-            <button type="button">All sources⌄</button>
-            <button type="button">All platforms⌄</button>
-            <button type="button">Access: all⌄</button>
-            <button type="button">⌘ Filters</button>
+            <span className="filter-search">
+              <Search aria-hidden="true" size={13} strokeWidth={1.8} />
+              Search people...
+            </span>
+            <button type="button">
+              All sources <ChevronDown aria-hidden="true" size={13} strokeWidth={1.8} />
+            </button>
+            <button type="button">
+              All platforms <ChevronDown aria-hidden="true" size={13} strokeWidth={1.8} />
+            </button>
+            <button type="button">
+              Access: all <ChevronDown aria-hidden="true" size={13} strokeWidth={1.8} />
+            </button>
+            <button type="button">
+              <SlidersHorizontal aria-hidden="true" size={13} strokeWidth={1.8} />
+              Filters
+            </button>
           </div>
           <IdentityTable
             identities={identities}
@@ -524,7 +537,10 @@ export function AegisConsole() {
           <footer className="table-footer">
             <span>Showing {identities.length} identities</span>
             <span>
-              Rows per page: 25　‹　<strong>1</strong>　›
+              Rows per page: 25
+              <ChevronLeft aria-hidden="true" size={13} strokeWidth={1.8} />
+              <strong>1</strong>
+              <ChevronRight aria-hidden="true" size={13} strokeWidth={1.8} />
             </span>
           </footer>
         </div>

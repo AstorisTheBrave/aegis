@@ -1,4 +1,6 @@
 import type { IdentitySummary } from '../../lib/api.js';
+import { ChevronRight } from 'lucide-react';
+import { ProviderLogo } from '../../components/ProviderLogo.js';
 
 interface IdentityTableProps {
   readonly identities: readonly IdentitySummary[];
@@ -62,8 +64,13 @@ export function IdentityTable({
                   </span>
                 </td>
                 <td>
-                  <strong>{identity.source}</strong>
-                  <small>{identity.sourceAccount}</small>
+                  <span className="source-cell">
+                    <ProviderLogo decorative provider={identity.source} />
+                    <span>
+                      <strong>{identity.source}</strong>
+                      <small>{identity.sourceAccount}</small>
+                    </span>
+                  </span>
                 </td>
                 <td>
                   <strong>{identity.platform}</strong>
@@ -77,7 +84,8 @@ export function IdentityTable({
                 <td>{identity.privileged ? 'Yes' : 'No'}</td>
                 <td>
                   <span className="last-seen">
-                    {identity.lastSeen} <span aria-hidden="true">›</span>
+                    {identity.lastSeen}{' '}
+                    <ChevronRight aria-hidden="true" size={14} strokeWidth={1.7} />
                   </span>
                 </td>
               </tr>

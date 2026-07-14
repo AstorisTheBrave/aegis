@@ -1,4 +1,5 @@
 import type { DiscoveryQueueItem } from '../../lib/api.js';
+import { ProviderLogo } from '../../components/ProviderLogo.js';
 
 interface DiscoveryQueueProps {
   readonly items: readonly DiscoveryQueueItem[];
@@ -21,7 +22,10 @@ export function DiscoveryQueue({ items, loading }: DiscoveryQueueProps) {
         >
           <header>
             <div>
-              <p className="eyebrow">{label(item.observation.source)}</p>
+              <p className="eyebrow discovery-source">
+                <ProviderLogo decorative provider={item.observation.source} />
+                {label(item.observation.source)}
+              </p>
               <h2>{item.observation.vendorName}</h2>
               <p>{item.application ? 'Matched catalog application' : 'Unmatched observation'}</p>
             </div>
