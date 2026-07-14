@@ -1,0 +1,152 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font: 14px Arial;
+  color: #24334b;
+  background: #f8f6f1;
+}
+main {
+  display: grid;
+  grid-template-columns: 230px 1fr 390px;
+  min-height: 100vh;
+}
+aside,
+header {
+  background: #082543;
+  color: #eef3f7;
+}
+aside {
+  padding: 22px;
+}
+.brand {
+  font-size: 30px;
+  color: #d79b3a;
+}
+.brand small,
+.nav small,
+td small {
+  display: block;
+  font-size: 11px;
+  color: #9daabd;
+}
+.env {
+  border: 1px solid #49627d;
+  padding: 14px;
+  margin: 30px 0;
+}
+.nav {
+  padding: 12px 8px;
+  font-size: 15px;
+}
+.active {
+  background: #1a3a60;
+  border-left: 3px solid #d79b3a;
+}
+footer {
+  position: fixed;
+  bottom: 18px;
+}
+section {
+  background: #fbfaf7;
+}
+header {
+  height: 72px;
+  padding: 24px 30px;
+  font-size: 15px;
+}
+header input {
+  margin-left: 120px;
+  width: 350px;
+  padding: 10px;
+  background: #173553;
+  border: 1px solid #58708b;
+  color: white;
+}
+.content {
+  padding: 30px;
+}
+h1 {
+  font-size: 26px;
+}
+.tabs {
+  border-bottom: 1px solid #ddd;
+  padding: 14px 0;
+  color: #506078;
+}
+.filters {
+  margin: 28px 0;
+  padding: 12px;
+  border: 1px solid #ddd;
+  color: #667;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th,
+td {
+  text-align: left;
+  padding: 16px 10px;
+  border-bottom: 1px solid #e5e0d8;
+}
+th {
+  font-size: 12px;
+  color: #677;
+}
+td small {
+  color: #778;
+}
+.selected {
+  background: #fff8e9;
+  outline: 1px solid #d79b3a;
+}
+.panel {
+  background: #fff;
+  color: #27384d;
+  border-left: 1px solid #ddd;
+}
+.panel h3 {
+  margin: 22px 0;
+}
+dt {
+  float: left;
+  color: #718095;
+  margin: 7px 0;
+}
+dd {
+  text-align: right;
+  margin: 7px 0;
+}
+.evidence {
+  border: 1px solid #ddd;
+  padding: 12px;
+  margin-top: 10px;
+}
+.decisions {
+  display: flex;
+  gap: 8px;
+}
+.decisions button,
+textarea {
+  border: 1px solid #d8d8d8;
+  background: #fff;
+  padding: 13px;
+  width: 100%;
+}
+.chosen {
+  border: 2px solid #173553 !important;
+}
+.submit {
+  margin-top: 12px;
+  float: right;
+  background: #082543;
+  color: white;
+  padding: 12px;
+  border: 0;
+}
+textarea {
+  margin-top: 14px;
+  height: 62px;
+}
