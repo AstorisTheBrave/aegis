@@ -73,4 +73,36 @@ describe('WorkflowDryRunEngine', () => {
       ]),
     );
   });
+
+  it('generates distinct execution IDs for concurrent previews at the same instant', async () => {
+    const repository = new InMemoryWorkflowRepository();
+    let sequence = 0;
+    const engine = new WorkflowDryRunEngine(
+      repository,
+      new InMemoryAuditLedger(),
+      () => new Date('2026-07-14T18:00:00.000Z'),
+      () => `nonce-${++sequence}`,
+    );
+    const definition = getWorkflowTemplate('leaver.v1')!;
+    const input = {
+      templateId: 'leaver.v1',
+      actor: 'admin@acme.dev',
+      sourceFacts: [
+        {
+          id: 'hris:1',
+          kind: 'hris',
+          label: 'Leaver event',
+          observedAt: '2026-07-14T17:00:00.000Z',
+        },
+      ],
+    };
+
+    const [first, second] = await Promise.all([
+      engine.preview('acme', definition, input),
+      engine.preview('acme', definition, input),
+    ]);
+
+    expect(first.id).not.toBe(second.id);
+    await expect(repository.listExecutions('acme')).resolves.toHaveLength(2);
+  });
 });

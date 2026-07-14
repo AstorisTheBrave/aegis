@@ -10,6 +10,7 @@ import { CampaignList } from './features/reviews/CampaignList.js';
 import { DecisionControls } from './features/reviews/DecisionControls.js';
 import { PolicyQueue } from './features/reviews/PolicyQueue.js';
 import { WorkflowLibrary } from './features/workflows/WorkflowLibrary.js';
+import { ActionQueue } from './features/actions/ActionQueue.js';
 import {
   aegisApi,
   type FindingDetail,
@@ -20,6 +21,7 @@ import {
   type PolicyEvaluation,
   type WorkflowDefinition,
   type WorkflowExecution,
+  type ControlledAction,
 } from './lib/api.js';
 import './styles.css';
 
@@ -46,6 +48,8 @@ export function AegisConsole() {
   const [workflowTemplates, setWorkflowTemplates] = useState<readonly WorkflowDefinition[]>([]);
   const [workflowLoading, setWorkflowLoading] = useState(true);
   const [workflowExecution, setWorkflowExecution] = useState<WorkflowExecution>();
+  const [actions, setActions] = useState<readonly ControlledAction[]>([]);
+  const [actionsLoading, setActionsLoading] = useState(true);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setQuery(search), 200);
@@ -116,6 +120,38 @@ export function AegisConsole() {
       ],
     });
     setWorkflowExecution(execution);
+  }
+
+  async function requestOffboardingActions(execution: WorkflowExecution) {
+    const next = await aegisApi.requestOffboardingActions(tenantId, execution.id, {
+      target: { subjectId: 'alice-example', displayName: 'Alice Example' },
+      requestedBy: 'Aegis Admin',
+    });
+    setActions((current) => [
+      ...next,
+      ...current.filter((action) => !next.some((item) => item.id === action.id)),
+    ]);
+    setActiveNavigation('Actions');
+  }
+
+  useEffect(() => {
+    let active = true;
+    void aegisApi.listActions(tenantId).then((next) => {
+      if (!active) return;
+      setActions(next);
+      setActionsLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function updateAction(
+    action: ControlledAction,
+    operation: () => Promise<ControlledAction>,
+  ) {
+    const updated = await operation();
+    setActions((current) => current.map((item) => (item.id === action.id ? updated : item)));
   }
 
   useEffect(() => {
@@ -258,6 +294,42 @@ export function AegisConsole() {
             execution={workflowExecution}
             loading={workflowLoading}
             onRun={runWorkflow}
+            onRequestOffboarding={requestOffboardingActions}
+          />
+        </div>
+      ) : activeNavigation === 'Actions' ? (
+        <div className="inventory-page discovery-page">
+          <ActionQueue
+            actions={actions}
+            loading={actionsLoading}
+            onApprove={(action, breakGlass) =>
+              updateAction(action, () =>
+                aegisApi.approveAction(tenantId, action.id, {
+                  approver: breakGlass ? 'Aegis Admin' : 'Security approver',
+                  reason: breakGlass
+                    ? 'Emergency response under time-bounded break-glass authority.'
+                    : 'Source facts and rollback plan were reviewed.',
+                  ...(breakGlass
+                    ? {
+                        breakGlass: {
+                          reason: 'Urgent offboarding response.',
+                          expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+                        },
+                      }
+                    : {}),
+                }),
+              )
+            }
+            onCompensate={(action) =>
+              updateAction(action, () =>
+                aegisApi.compensateAction(tenantId, action.id, 'Action executor'),
+              )
+            }
+            onExecute={(action) =>
+              updateAction(action, () =>
+                aegisApi.executeAction(tenantId, action.id, 'Action executor'),
+              )
+            }
           />
         </div>
       ) : (

@@ -6,3 +6,4 @@ export { PostgresSyncRunStore } from './postgres-sync-run-store.js';
 export { PostgresDiscoveryRepository } from './postgres-discovery-repository.js';
 export { PostgresSaasCatalogRepository } from './postgres-saas-catalog-repository.js';
 export { PostgresWorkflowRepository } from './postgres-workflow-repository.js';
+export { PostgresActionRepository } from './postgres-action-repository.js';

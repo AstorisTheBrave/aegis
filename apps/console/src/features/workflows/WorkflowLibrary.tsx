@@ -5,11 +5,13 @@ export function WorkflowLibrary({
   execution,
   loading,
   onRun,
+  onRequestOffboarding,
 }: {
   readonly templates: readonly WorkflowDefinition[];
   readonly execution?: WorkflowExecution;
   readonly loading: boolean;
   readonly onRun: (templateId: string) => Promise<void>;
+  readonly onRequestOffboarding?: (execution: WorkflowExecution) => Promise<void>;
 }) {
   return (
     <section className="discovery-list" aria-labelledby="workflow-library-heading">
@@ -67,6 +69,15 @@ export function WorkflowLibrary({
               </div>
             ))}
           </dl>
+          {execution.definitionId === 'leaver.v1' ? (
+            <button
+              className="owner-assignment-button"
+              onClick={() => void onRequestOffboarding?.(execution)}
+              type="button"
+            >
+              Create controlled action requests
+            </button>
+          ) : null}
         </article>
       ) : null}
     </section>
