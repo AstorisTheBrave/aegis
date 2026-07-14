@@ -1,10 +1,16 @@
-import type { CatalogApplication, CatalogOwner, SaasCatalogRepository } from '@aegis/saas-catalog';
+import {
+  normalizeCatalogApplication,
+  type CatalogApplication,
+  type CatalogOwner,
+  type SaasCatalogRepository,
+} from '@aegis/saas-catalog';
 import type { Pool } from 'pg';
 
 export class PostgresSaasCatalogRepository implements SaasCatalogRepository {
   constructor(private readonly pool: Pool) {}
 
   async upsert(application: CatalogApplication): Promise<CatalogApplication> {
+    const normalized = normalizeCatalogApplication(application);
     await this.pool.query(
       `INSERT INTO governance_saas_catalog_applications
         (tenant_id, id, normalized_name, vendor_name, risk_tier, payload, updated_at)
@@ -13,16 +19,16 @@ export class PostgresSaasCatalogRepository implements SaasCatalogRepository {
          normalized_name = EXCLUDED.normalized_name, vendor_name = EXCLUDED.vendor_name,
          risk_tier = EXCLUDED.risk_tier, payload = EXCLUDED.payload, updated_at = EXCLUDED.updated_at`,
       [
-        application.tenantId,
-        application.id,
-        application.normalizedName,
-        application.vendorName,
-        application.riskTier,
-        application,
-        application.updatedAt,
+        normalized.tenantId,
+        normalized.id,
+        normalized.normalizedName,
+        normalized.vendorName,
+        normalized.riskTier,
+        normalized,
+        normalized.updatedAt,
       ],
     );
-    return application;
+    return normalized;
   }
 
   async get(tenantId: string, id: string): Promise<CatalogApplication | undefined> {

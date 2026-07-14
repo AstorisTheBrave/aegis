@@ -144,6 +144,11 @@ describeDatabase('PostgreSQL storage adapters', () => {
 
     const catalog = new PostgresSaasCatalogRepository(pool);
     await catalog.upsert(sampleCatalogApplication());
+    await expect(catalog.get('tenant-acme', 'slack')).resolves.toMatchObject({
+      normalizedName: 'slack',
+      domains: ['slack.com'],
+      aliases: ['slack technologies'],
+    });
     await expect(
       catalog.assignOwners('tenant-acme', 'slack', [], '2026-07-14T10:07:00.000Z'),
     ).resolves.toMatchObject({
@@ -190,9 +195,9 @@ function sampleCatalogApplication(): CatalogApplication {
     tenantId: 'tenant-acme',
     id: 'slack',
     vendorName: 'Slack',
-    normalizedName: 'slack',
-    domains: ['slack.com'],
-    aliases: [],
+    normalizedName: 'Slack',
+    domains: ['https://www.slack.com'],
+    aliases: ['Slack Technologies'],
     category: 'collaboration',
     riskTier: 'high',
     dataClassification: 'confidential',

@@ -109,11 +109,11 @@ function matchApplication(
   );
 }
 
-export async function reconcileDiscovery(
+export function reconcileDiscoveryAgainstApplications(
   observation: DiscoveryObservation,
-  catalog: SaasCatalogRepository,
-): Promise<DiscoveryQueueItem> {
-  const application = matchApplication(observation, await catalog.list(observation.tenantId));
+  applications: readonly CatalogApplication[],
+): DiscoveryQueueItem {
+  const application = matchApplication(observation, applications);
   const reasons: DiscoveryReason[] = [];
   if (!application) reasons.push('unknown_app');
   if (application && application.owners.length === 0) reasons.push('missing_owner');
@@ -136,4 +136,14 @@ export async function reconcileDiscovery(
       source: observation.source,
     },
   };
+}
+
+export async function reconcileDiscovery(
+  observation: DiscoveryObservation,
+  catalog: SaasCatalogRepository,
+): Promise<DiscoveryQueueItem> {
+  return reconcileDiscoveryAgainstApplications(
+    observation,
+    await catalog.list(observation.tenantId),
+  );
 }
