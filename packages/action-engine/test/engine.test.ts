@@ -68,6 +68,24 @@ describe('ControlledActionEngine', () => {
     });
   });
 
+  it('consults the configured execution gate before a provider adapter is invoked', async () => {
+    const engine = new ControlledActionEngine(
+      new InMemoryActionRepository(),
+      new InMemoryAuditLedger(),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { authorize: async () => Promise.reject(new Error('Test tenant activation required')) },
+    );
+    const action = await engine.request('acme', input);
+    await engine.approve('acme', action.id, { approver: 'approver@acme.dev', reason: 'Approved.' });
+    await expect(engine.execute('acme', action.id, 'executor@acme.dev')).rejects.toThrow(
+      'Test tenant activation required',
+    );
+    expect((await engine.list('acme'))[0]?.executions).toEqual([]);
+  });
+
   it('allows a brief, reasoned self-approval only through break-glass', async () => {
     const engine = new ControlledActionEngine(
       new InMemoryActionRepository(),

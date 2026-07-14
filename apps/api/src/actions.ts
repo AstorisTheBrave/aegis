@@ -6,7 +6,11 @@ import type {
   ControlledAction,
   CreateActionInput,
 } from '@aegis/api-contract';
-import { ControlledActionEngine, type ActionRepository } from '@aegis/action-engine';
+import {
+  ControlledActionEngine,
+  type ActionExecutionGate,
+  type ActionRepository,
+} from '@aegis/action-engine';
 import type { AuditLedger } from '@open-saas-governance/audit-ledger';
 
 export interface ActionEvidenceBundle {
@@ -29,8 +33,17 @@ export class ActionManager {
     repository: ActionRepository,
     audit: AuditLedger,
     now: () => Date = () => new Date(),
+    executionGate?: ActionExecutionGate,
   ) {
-    this.engine = new ControlledActionEngine(repository, audit, undefined, undefined, now);
+    this.engine = new ControlledActionEngine(
+      repository,
+      audit,
+      undefined,
+      undefined,
+      now,
+      undefined,
+      executionGate,
+    );
   }
 
   list(tenantId: string): Promise<readonly ControlledAction[]> {

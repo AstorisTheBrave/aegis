@@ -7,3 +7,4 @@ export { PostgresDiscoveryRepository } from './postgres-discovery-repository.js'
 export { PostgresSaasCatalogRepository } from './postgres-saas-catalog-repository.js';
 export { PostgresWorkflowRepository } from './postgres-workflow-repository.js';
 export { PostgresActionRepository } from './postgres-action-repository.js';
+export { PostgresProviderCertificationRepository } from './postgres-provider-certification-repository.js';

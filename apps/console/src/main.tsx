@@ -22,6 +22,7 @@ import {
   type WorkflowDefinition,
   type WorkflowExecution,
   type ControlledAction,
+  type TestTenantActivationSummary,
 } from './lib/api.js';
 import './styles.css';
 
@@ -49,6 +50,9 @@ export function AegisConsole() {
   const [workflowExecution, setWorkflowExecution] = useState<WorkflowExecution>();
   const [actions, setActions] = useState<readonly ControlledAction[]>([]);
   const [actionsLoading, setActionsLoading] = useState(true);
+  const [testActivations, setTestActivations] = useState<readonly TestTenantActivationSummary[]>(
+    [],
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => setQuery(search), 200);
@@ -75,6 +79,16 @@ export function AegisConsole() {
     let active = true;
     void aegisApi.listFindings(tenantId).then((next) => {
       if (active) setSelectedFindingId(next[0]?.id);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    void aegisApi.listTestActivations(tenantId).then((next) => {
+      if (active) setTestActivations(next);
     });
     return () => {
       active = false;
@@ -223,6 +237,9 @@ export function AegisConsole() {
   const campaignTask = campaigns
     .flatMap((campaign) => campaign.tasks.map((task) => ({ campaign, task })))
     .find(({ task }) => task.findingId === finding?.id);
+  const activeTestActivationCount = testActivations.filter(
+    (activation) => new Date(activation.expiresAt) > new Date(),
+  ).length;
 
   return (
     <AppShell
@@ -312,6 +329,20 @@ export function AegisConsole() {
         </div>
       ) : activeNavigation === 'Actions' ? (
         <div className="inventory-page discovery-page">
+          <section className="test-activation-status" aria-label="Test tenant activation status">
+            <div>
+              <p className="eyebrow">Provider execution boundary</p>
+              <h2>Test-tenant activations</h2>
+              <p>
+                Controlled actions require an unexpired test activation. Production providers and
+                credentials are not available here.
+              </p>
+            </div>
+            <span className="identity-count">
+              {activeTestActivationCount} active test configuration
+              {activeTestActivationCount === 1 ? '' : 's'}
+            </span>
+          </section>
           <ActionQueue
             actions={actions}
             loading={actionsLoading}

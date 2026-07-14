@@ -40,6 +40,9 @@ importers:
       '@aegis/ingestion':
         specifier: workspace:*
         version: link:../../packages/ingestion
+      '@aegis/provider-certification':
+        specifier: workspace:*
+        version: link:../../packages/provider-certification
       '@aegis/review-policies':
         specifier: workspace:*
         version: link:../../packages/review-policies
@@ -350,6 +353,9 @@ importers:
       '@aegis/ingestion':
         specifier: workspace:*
         version: link:../ingestion
+      '@aegis/provider-certification':
+        specifier: workspace:*
+        version: link:../provider-certification
       '@aegis/reviews':
         specifier: workspace:*
         version: link:../reviews
@@ -378,6 +384,31 @@ importers:
       '@types/pg':
         specifier: 8.20.0
         version: 8.20.0
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
+  packages/provider-certification:
+    dependencies:
+      '@aegis/action-contract':
+        specifier: workspace:*
+        version: link:../action-contract
+      '@aegis/action-engine':
+        specifier: workspace:*
+        version: link:../action-engine
+      '@aegis/connector-test-kit':
+        specifier: workspace:*
+        version: link:../connector-test-kit
+      '@open-saas-governance/connector-protocol':
+        specifier: workspace:*
+        version: link:../connector-protocol
+    devDependencies:
+      '@types/node':
+        specifier: 24.1.0
+        version: 24.1.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
       vitest:
         specifier: 4.1.10
         version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))

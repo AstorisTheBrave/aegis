@@ -121,3 +121,16 @@ They are not claims of a live production integration.
 Use `pnpm test:sdks` to validate the protocol-only TypeScript, Go, Python, and
 Rust SDK seeds. They contain no provider mutation capability and no dependency
 on the Aegis control plane.
+
+## Test-tenant provider certification
+
+Controlled actions are exercised only through the maintained mock providers.
+Before a configured runtime executes or compensates an approved mock action,
+the tenant must hold an unexpired `test` activation that declares the exact
+provider, action kinds, and scopes. Certification records combine that
+activation with a redacted read-only fixture and scope-limited action probes.
+
+The API does not accept provider credentials, arbitrary provider URLs, or a
+production environment selector for this flow. Every activation,
+certification, and action record remains auditable and explicitly reports
+`providerMutation: false`.
