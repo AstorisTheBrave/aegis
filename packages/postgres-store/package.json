@@ -13,6 +13,7 @@
     "typecheck": "tsc --project tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@aegis/assistance": "workspace:*",
     "@aegis/action-contract": "workspace:*",
     "@aegis/action-engine": "workspace:*",
     "@aegis/access-requests": "workspace:*",

@@ -15,6 +15,12 @@ import type {
 } from '@aegis/action-contract';
 import type { ActionKind, MockProviderId } from '@aegis/action-contract';
 import type { AccessRequest, CreateAccessRequestInput } from '@aegis/access-requests';
+import type {
+  AssistanceOutput,
+  AssistanceRequest,
+  AssistanceSettings,
+  UpdateAssistanceSettingsInput,
+} from '@aegis/assistance';
 
 export type { CatalogApplication, CatalogOwner, DiscoveryObservation, DiscoveryQueueItem };
 export type { PolicyEvaluation };
@@ -27,6 +33,12 @@ export type {
   CreateActionInput,
 };
 export type { AccessRequest, CreateAccessRequestInput };
+export type {
+  AssistanceOutput,
+  AssistanceRequest,
+  AssistanceSettings,
+  UpdateAssistanceSettingsInput,
+};
 
 export interface TestTenantActivationSummary {
   readonly id: string;

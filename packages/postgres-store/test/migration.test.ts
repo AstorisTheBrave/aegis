@@ -34,6 +34,10 @@ const accessRequestsMigration = await readFile(
   new URL('../migrations/0010_access_requests.sql', import.meta.url),
   'utf8',
 );
+const assistanceMigration = await readFile(
+  new URL('../migrations/0011_assistance.sql', import.meta.url),
+  'utf8',
+);
 
 describe('0001 access graph migration', () => {
   it('keeps every graph table tenant-scoped and referentially sound', () => {
@@ -120,5 +124,12 @@ describe('0010 access requests migration', () => {
     expect(accessRequestsMigration).toContain('PRIMARY KEY (tenant_id, id)');
     expect(accessRequestsMigration).toContain('UNIQUE (tenant_id, idempotency_key)');
     expect(accessRequestsMigration).toContain('governance_access_requests_tenant_requested_idx');
+  });
+});
+
+describe('0011 assistance migration', () => {
+  it('keeps assistance settings tenant-scoped', () => {
+    expect(assistanceMigration).toContain('CREATE TABLE governance_assistance_settings');
+    expect(assistanceMigration).toContain('tenant_id TEXT PRIMARY KEY');
   });
 });

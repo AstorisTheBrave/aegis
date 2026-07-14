@@ -9,3 +9,4 @@ export { PostgresWorkflowRepository } from './postgres-workflow-repository.js';
 export { PostgresActionRepository } from './postgres-action-repository.js';
 export { PostgresProviderCertificationRepository } from './postgres-provider-certification-repository.js';
 export { PostgresAccessRequestRepository } from './postgres-access-request-repository.js';
+export { PostgresAssistanceSettingsRepository } from './postgres-assistance-settings-repository.js';

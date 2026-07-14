@@ -142,3 +142,16 @@ routes it to a distinct resource owner, and records approval or denial in the
 audit ledger. Approved requests are time-bound and expire automatically. The
 current fulfillment state is deliberately simulated: it requires the existing
 controlled-action path and explicitly reports `providerMutation: false`.
+
+## Grounded assistance
+
+The assistance module is optional and disabled by default. Its initial local,
+deterministic provider produces source-linked evidence summaries, recommendation
+drafts, and workflow drafts under a tenant-controlled request budget. Every
+output records its prompt version, source facts, redaction count, and the
+explicit `providerMutation: false` / `enforcement: not_authorized` boundary.
+
+The API rejects provider credentials and arbitrary provider URLs. This release
+establishes the versioned provider seam for future local or bring-your-own
+adapters; it does not connect to external model providers, and generated output
+never approves, revokes, or executes an action.
