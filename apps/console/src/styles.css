@@ -666,7 +666,7 @@ h1 {
 }
 .export-evidence {
   clear: both;
-  margin-top: 58px;
+  margin-top: 18px;
 }
 .export-evidence button {
   background: transparent;
@@ -688,6 +688,55 @@ h1 {
   color: #7a8794;
   font-size: 12px;
   padding: 30px 0;
+}
+.campaign-list {
+  border-top: 1px solid #e7e3dd;
+  clear: both;
+  margin-top: 54px;
+  padding-top: 16px;
+}
+.campaign-list-heading {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+.campaign-list h3 {
+  color: #31485f;
+  font-size: 12px;
+  margin: 0;
+}
+.campaign-list-heading span {
+  background: #edf2f5;
+  border-radius: 999px;
+  color: #4b6378;
+  font-size: 9px;
+  padding: 2px 7px;
+}
+.campaign-list > p,
+.campaign-list li span,
+.campaign-list li small {
+  color: #758494;
+  font-size: 9px;
+  line-height: 1.4;
+}
+.campaign-list ul {
+  list-style: none;
+  margin: 9px 0 0;
+  padding: 0;
+}
+.campaign-list li {
+  border-left: 2px solid #5c89a7;
+  margin-top: 8px;
+  padding-left: 8px;
+}
+.campaign-list li strong,
+.campaign-list li span,
+.campaign-list li small {
+  display: block;
+}
+.campaign-list li strong {
+  color: #40566c;
+  font-size: 10px;
 }
 
 @media (max-width: 1100px) {

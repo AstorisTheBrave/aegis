@@ -106,6 +106,13 @@ function toSummary(campaign: ReviewCampaign): ReviewCampaignSummary {
       ...(task.dueAt ? { dueAt: task.dueAt } : {}),
       status: task.status,
       decisionCount: task.decisions.length,
+      decisions: task.decisions.map((decision) => ({
+        id: decision.id,
+        kind: decision.kind,
+        reviewer: decision.reviewer,
+        rationale: decision.rationale,
+        decidedAt: decision.decidedAt,
+      })),
     })),
   };
 }

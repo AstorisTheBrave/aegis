@@ -65,7 +65,30 @@ export interface EvidenceBundle {
   readonly sha256: string;
 }
 
+export interface CampaignEvidenceFile {
+  readonly name: 'campaign.json' | 'findings.json' | 'audit-ledger.json';
+  readonly content: string;
+  readonly sha256: string;
+}
+
+export interface CampaignEvidenceBundle {
+  readonly format: 'aegis.review-evidence.v1';
+  readonly tenantId: string;
+  readonly exportedAt: string;
+  readonly campaignId: string;
+  readonly files: readonly CampaignEvidenceFile[];
+  readonly manifestSha256: string;
+}
+
 export type CampaignDecision = 'retain' | 'remove_recommended' | 'delegate' | 'exception';
+
+export interface ReviewCampaignDecision {
+  readonly id: string;
+  readonly kind: CampaignDecision;
+  readonly reviewer: string;
+  readonly rationale: string;
+  readonly decidedAt: string;
+}
 
 export interface ReviewCampaignTask {
   readonly id: string;
@@ -77,6 +100,7 @@ export interface ReviewCampaignTask {
   readonly dueAt?: string;
   readonly status: 'open' | 'completed';
   readonly decisionCount: number;
+  readonly decisions: readonly ReviewCampaignDecision[];
 }
 
 export interface ReviewCampaignSummary {

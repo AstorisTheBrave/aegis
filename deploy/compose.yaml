@@ -15,5 +15,29 @@ services:
     volumes:
       - governance-postgres-v18:/var/lib/postgresql
 
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://governance:governance_local_only@postgres:5432/governance
+      MASTER_KEY: ${MASTER_KEY:?Set MASTER_KEY to a base64-encoded 32-byte key before starting Aegis.}
+      PORT: '3000'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "fetch(\"http://127.0.0.1:3000/ready\").then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    ports:
+      - '3000:3000'
+
 volumes:
   governance-postgres-v18:

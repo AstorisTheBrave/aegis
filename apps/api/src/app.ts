@@ -14,9 +14,11 @@ import type {
 } from '@open-saas-governance/access-graph';
 import type { SyncRunStore } from '@aegis/ingestion';
 import { GraphFindingReader, type FindingReader } from './findings.js';
+import type { CampaignEvidenceReader } from './evidence.js';
 import type { ReviewCampaignManager } from './review-campaigns.js';
 
 export type { FindingReader } from './findings.js';
+export type { CampaignEvidenceReader } from './evidence.js';
 export type { ReviewCampaignManager } from './review-campaigns.js';
 
 export interface ReviewDecisionRecorder {
@@ -35,6 +37,7 @@ export interface ApiServices {
   readonly findings?: FindingReader;
   readonly campaigns?: ReviewCampaignManager;
   readonly syncRuns?: SyncRunStore;
+  readonly campaignEvidence?: CampaignEvidenceReader;
   readonly reviews?: ReviewDecisionRecorder;
   readonly evidence?: EvidenceExporter;
 }
@@ -185,6 +188,19 @@ export function createApp(graph: AccessGraphRepository, services: ApiServices = 
     async (request, reply) => {
       if (!services.evidence) return reply.code(501).send({ error: 'evidence_not_configured' });
       return services.evidence.export(request.params.tenantId);
+    },
+  );
+  app.get<{ Params: { tenantId: string; campaignId: string } }>(
+    '/v1/tenants/:tenantId/review-campaigns/:campaignId/evidence/export',
+    async (request, reply) => {
+      if (!services.campaignEvidence) {
+        return reply.code(501).send({ error: 'campaign_evidence_not_configured' });
+      }
+      const bundle = await services.campaignEvidence.export(
+        request.params.tenantId,
+        request.params.campaignId,
+      );
+      return bundle ?? reply.code(404).send({ error: 'review_campaign_not_found' });
     },
   );
   app.get<{ Params: { tenantId: string } }>(

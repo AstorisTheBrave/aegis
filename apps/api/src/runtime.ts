@@ -7,6 +7,7 @@ import {
   PostgresSyncRunStore,
 } from '@open-saas-governance/postgres-store';
 import { GraphReviewCampaignManager } from './review-campaigns.js';
+import { StoredCampaignEvidenceReader } from './evidence.js';
 import { createApp } from './app.js';
 import { runMigrations } from './migrations.js';
 
@@ -40,13 +41,11 @@ export async function createRuntime(
     await runMigrations(pool);
     const graph = new PostgresAccessGraphRepository(pool);
     const audit = new PostgresAuditLedger(pool);
-    const campaigns = new GraphReviewCampaignManager(
-      graph,
-      new PostgresReviewCampaignRepository(pool),
-      audit,
-    );
+    const reviewRepository = new PostgresReviewCampaignRepository(pool);
+    const campaigns = new GraphReviewCampaignManager(graph, reviewRepository, audit);
     const app = createApp(graph, {
       campaigns,
+      campaignEvidence: new StoredCampaignEvidenceReader(reviewRepository, audit),
       syncRuns: new PostgresSyncRunStore(pool),
     });
     return {

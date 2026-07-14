@@ -3,9 +3,11 @@ import type { AegisApi } from '../../lib/api.js';
 
 export function ExportEvidenceButton({
   api,
+  campaignId,
   tenantId,
 }: {
   readonly api: AegisApi;
+  readonly campaignId?: string;
   readonly tenantId: string;
 }) {
   const [checksum, setChecksum] = useState('');
@@ -20,16 +22,20 @@ export function ExportEvidenceButton({
     setLoading(true);
     setError('');
     try {
-      const bundle = await api.exportEvidence(tenantId);
+      const bundle = campaignId
+        ? await api.exportCampaignEvidence(tenantId, campaignId)
+        : await api.exportEvidence(tenantId);
       const href = URL.createObjectURL(
         new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' }),
       );
       const anchor = document.createElement('a');
       anchor.href = href;
-      anchor.download = `aegis-evidence-${tenantId}.json`;
+      anchor.download = campaignId
+        ? `aegis-review-evidence-${campaignId}.json`
+        : `aegis-evidence-${tenantId}.json`;
       anchor.click();
       URL.revokeObjectURL(href);
-      setChecksum(bundle.sha256);
+      setChecksum('manifestSha256' in bundle ? bundle.manifestSha256 : bundle.sha256);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Evidence export failed.');
     } finally {

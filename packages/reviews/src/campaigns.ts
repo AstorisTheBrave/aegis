@@ -122,6 +122,14 @@ export class ReviewCampaignService {
     private readonly audit: AuditLedger,
   ) {}
 
+  list(tenantId: string): Promise<readonly ReviewCampaign[]> {
+    return this.repository.list(tenantId);
+  }
+
+  get(tenantId: string, campaignId: string): Promise<ReviewCampaign | undefined> {
+    return this.repository.get(tenantId, campaignId);
+  }
+
   async create(input: CreateCampaignInput): Promise<ReviewCampaign> {
     const owners = new Map(
       input.resources.map((resource) => [resource.id, resource.businessOwner]),

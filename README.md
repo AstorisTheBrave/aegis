@@ -46,7 +46,6 @@ Use Node.js 24 LTS and pnpm 11.
 
 ```powershell
 pnpm install
-docker compose -f deploy/compose.yaml up -d
 pnpm lint
 pnpm typecheck
 pnpm test
@@ -54,3 +53,53 @@ pnpm test
 
 `MASTER_KEY` must be a base64-encoded 32-byte key. The services must refuse to
 start when it is absent or invalid.
+
+## Self-hosted Phase 1
+
+Create a local environment file from `deploy/env.example`, generate a unique
+`MASTER_KEY`, then start the database and API together:
+
+```powershell
+Copy-Item deploy/env.example .env
+# Set MASTER_KEY in .env to a base64-encoded, random 32-byte value.
+docker compose -f deploy/compose.yaml --env-file .env up --build --wait
+Invoke-RestMethod http://localhost:3000/ready
+```
+
+The API applies its append-only database migrations before it listens. A
+successful readiness response means PostgreSQL, the graph store, campaign
+store, audit ledger, and evidence export are available. Stop the local stack
+with `docker compose -f deploy/compose.yaml --env-file .env down`.
+
+### GitHub inventory permissions
+
+The GitHub connector only calls organization, team, repository, and
+collaborator **read** endpoints. Install it with the least privilege needed to
+read organization members, teams, repository metadata, and collaborators; do
+not grant any write, administration, workflow, or content permissions. Its
+manifest and tests reject provider-mutation capabilities.
+
+### Operating safely
+
+- Back up PostgreSQL with your normal encrypted `pg_dump` workflow before an
+  upgrade; restore into a fresh PostgreSQL instance, point `DATABASE_URL` at
+  it, and let Aegis verify its migration ledger.
+- Rotate `MASTER_KEY` only through a planned credential re-encryption change.
+  Phase 1 validates the key at startup and never places it in exported
+  evidence, logs, or API responses.
+- Upgrade a connector only after reviewing its declared read scopes, pinned
+  source revision or digest, fixture coverage, and no-write test evidence.
+- Campaign evidence is portable JSON. Verify it offline with
+  `verifyCampaignEvidence` from `@aegis/evidence-export`; any changed file or
+  manifest field invalidates its SHA-256 verification result.
+
+## Community policy packs and connectors
+
+Policies are deterministic modules over the normalized access graph. A policy
+pack must identify its source facts, produce stable finding IDs, avoid network
+calls during evaluation, and provide fixtures for every rule. Connectors use
+the versioned protocol contract, declare only read capabilities in Phase 1,
+and must prove that no route or token can mutate a provider.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the review requirements and public
+templates for submitting a connector or policy pack.
