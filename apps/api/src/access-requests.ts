@@ -36,7 +36,8 @@ export class AccessRequestManager {
     return this.#engine.list(t);
   }
   async create(t: string, input: CreateAccessRequestInput) {
-    const r = await this.#engine.create(t, input);
+    const { request: r, created } = await this.#engine.createWithStatus(t, input);
+    if (!created) return r;
     await this.audit.append({
       tenantId: t,
       occurredAt: r.requestedAt,

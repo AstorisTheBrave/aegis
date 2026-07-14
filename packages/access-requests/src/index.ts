@@ -76,6 +76,9 @@ export class AccessRequestEngine {
     private readonly createId: () => string = () => globalThis.crypto.randomUUID(),
   ) {}
   async create(tenantId: string, input: CreateAccessRequestInput) {
+    return (await this.createWithStatus(tenantId, input)).request;
+  }
+  async createWithStatus(tenantId: string, input: CreateAccessRequestInput) {
     const item = this.catalog.find((x) => x.id === input.catalogItemId);
     if (!item) throw new Error('Access catalog item was not found');
     if (!input.requester.trim() || !input.rationale.trim() || !input.idempotencyKey.trim())
@@ -86,7 +89,7 @@ export class AccessRequestEngine {
       input.durationMinutes > Math.min(1440, item.maxDurationMinutes)
     )
       throw new Error('Requested duration is not allowed');
-    return this.repository.createIfAbsent({
+    const request: AccessRequest = {
       schemaVersion: accessRequestSchemaVersion,
       id: `access-request:${this.createId()}`,
       tenantId,
@@ -98,7 +101,9 @@ export class AccessRequestEngine {
       status: 'pending',
       idempotencyKey: input.idempotencyKey,
       simulatedFulfillment: { requiresControlledAction: true, providerMutation: false },
-    });
+    };
+    const persisted = await this.repository.createIfAbsent(request);
+    return { request: persisted, created: persisted.id === request.id };
   }
   async decide(
     t: string,
@@ -126,6 +131,11 @@ export class AccessRequestEngine {
   async activate(t: string, id: string) {
     const r = await this.require(t, id);
     if (r.status !== 'approved') throw new Error('Only approved access requests can become active');
+    if (r.expiresAt && new Date(r.expiresAt) <= this.now()) {
+      const expired = { ...r, status: 'expired' as const };
+      await this.repository.save(expired);
+      throw new Error('Expired access requests cannot become active');
+    }
     const u = { ...r, status: 'active' as const };
     await this.repository.save(u);
     return u;

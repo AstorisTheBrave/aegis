@@ -23,6 +23,21 @@ describe('access request API', () => {
     });
     expect(created.statusCode).toBe(200);
     const id = (created.json() as { id: string }).id;
+    const retry = await app.inject({
+      method: 'POST',
+      url: '/v1/tenants/acme/access-requests',
+      payload: {
+        catalogItemId: 'github-maintain',
+        requester: 'user@acme.dev',
+        rationale: 'Incident investigation',
+        durationMinutes: 60,
+        idempotencyKey: 'request:1',
+      },
+    });
+    expect((retry.json() as { id: string }).id).toBe(id);
+    expect((await audit.list('acme')).map((record) => record.type)).toEqual([
+      'access_request.created',
+    ]);
     expect(
       (
         await app.inject({
