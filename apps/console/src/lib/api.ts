@@ -16,6 +16,8 @@ import type {
   WorkflowExecution,
   ControlledAction,
   TestTenantActivationSummary,
+  AccessRequest,
+  CreateAccessRequestInput,
 } from '@aegis/api-contract';
 
 export type {
@@ -38,6 +40,8 @@ export type {
   WorkflowExecution,
   ControlledAction,
   TestTenantActivationSummary,
+  AccessRequest,
+  CreateAccessRequestInput,
 } from '@aegis/api-contract';
 
 export interface AegisApi {
@@ -95,6 +99,14 @@ export interface AegisApi {
     executionId: string,
     input: { target: { subjectId: string; displayName: string }; requestedBy: string },
   ): Promise<readonly ControlledAction[]>;
+  listAccessRequests(tenantId: string): Promise<readonly AccessRequest[]>;
+  createAccessRequest(tenantId: string, input: CreateAccessRequestInput): Promise<AccessRequest>;
+  decideAccessRequest(
+    tenantId: string,
+    requestId: string,
+    input: { reviewer: string; approved: boolean; reason: string },
+  ): Promise<AccessRequest>;
+  activateAccessRequest(tenantId: string, requestId: string): Promise<AccessRequest>;
 }
 
 let sampleActions: readonly ControlledAction[] = [
@@ -128,6 +140,29 @@ const sampleTestActivations: readonly TestTenantActivationSummary[] = [
     activatedBy: 'operator@acme.dev',
     activatedAt: '2026-07-14T18:00:00.000Z',
     expiresAt: '2026-07-15T18:00:00.000Z',
+  },
+];
+
+let sampleAccessRequests: readonly AccessRequest[] = [
+  {
+    schemaVersion: 'access-request.v1',
+    id: 'access-request:demo-1',
+    tenantId: 'acme-platform',
+    catalogItem: {
+      id: 'github-maintain',
+      title: 'GitHub maintain access',
+      provider: 'mock-github',
+      entitlement: 'maintain',
+      reviewer: 'resource-owner@acme.dev',
+      maxDurationMinutes: 240,
+    },
+    requester: 'alice.example@acme.dev',
+    rationale: 'Investigate a time-sensitive deployment incident.',
+    durationMinutes: 60,
+    requestedAt: '2026-07-14T20:00:00.000Z',
+    status: 'pending',
+    idempotencyKey: 'demo:access-request:1',
+    simulatedFulfillment: { requiresControlledAction: true, providerMutation: false },
   },
 ];
 
@@ -651,6 +686,74 @@ export const demoApi: AegisApi = {
     ];
     return created.map((action) => known.get(action.idempotencyKey) ?? action);
   },
+  async listAccessRequests() {
+    return sampleAccessRequests;
+  },
+  async createAccessRequest(tenantId, input) {
+    const existing = sampleAccessRequests.find(
+      (request) => request.tenantId === tenantId && request.idempotencyKey === input.idempotencyKey,
+    );
+    if (existing) return existing;
+    const catalogItem =
+      input.catalogItemId === 'okta-support'
+        ? {
+            id: 'okta-support',
+            title: 'Okta support access',
+            provider: 'mock-okta',
+            entitlement: 'support',
+            reviewer: 'resource-owner@acme.dev',
+            maxDurationMinutes: 120,
+          }
+        : {
+            id: 'github-maintain',
+            title: 'GitHub maintain access',
+            provider: 'mock-github',
+            entitlement: 'maintain',
+            reviewer: 'resource-owner@acme.dev',
+            maxDurationMinutes: 240,
+          };
+    const created: AccessRequest = {
+      schemaVersion: 'access-request.v1',
+      id: `access-request:demo:${crypto.randomUUID()}`,
+      tenantId,
+      catalogItem,
+      requester: input.requester,
+      rationale: input.rationale,
+      durationMinutes: input.durationMinutes,
+      requestedAt: new Date().toISOString(),
+      status: 'pending',
+      idempotencyKey: input.idempotencyKey,
+      simulatedFulfillment: { requiresControlledAction: true, providerMutation: false },
+    };
+    sampleAccessRequests = [created, ...sampleAccessRequests];
+    return created;
+  },
+  async decideAccessRequest(_tenantId, requestId, input) {
+    const request = sampleAccessRequests.find((item) => item.id === requestId);
+    if (!request) throw new Error('Access request not found.');
+    const decidedAt = new Date().toISOString();
+    const updated: AccessRequest = {
+      ...request,
+      status: input.approved ? 'approved' : 'denied',
+      ...(input.approved
+        ? { expiresAt: new Date(Date.now() + request.durationMinutes * 60_000).toISOString() }
+        : {}),
+      decision: { reviewer: input.reviewer, reason: input.reason, decidedAt },
+    };
+    sampleAccessRequests = sampleAccessRequests.map((item) =>
+      item.id === requestId ? updated : item,
+    );
+    return updated;
+  },
+  async activateAccessRequest(_tenantId, requestId) {
+    const request = sampleAccessRequests.find((item) => item.id === requestId);
+    if (!request) throw new Error('Access request not found.');
+    const updated: AccessRequest = { ...request, status: 'active' };
+    sampleAccessRequests = sampleAccessRequests.map((item) =>
+      item.id === requestId ? updated : item,
+    );
+    return updated;
+  },
   async recordCampaignDecision(_tenantId, campaignId) {
     const campaign = sampleCampaigns.find((candidate) => candidate.id === campaignId);
     if (!campaign) throw new Error('The requested review campaign was not found.');
@@ -814,6 +917,29 @@ export function createHttpApi(baseUrl: string): AegisApi {
         baseUrl,
         `/v1/tenants/${encodeURIComponent(tenantId)}/workflow-executions/${encodeURIComponent(executionId)}/offboarding-actions`,
         { method: 'POST', body: JSON.stringify(input) },
+      ),
+    listAccessRequests: (tenantId) =>
+      requestJson<readonly AccessRequest[]>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/access-requests`,
+      ),
+    createAccessRequest: (tenantId, input) =>
+      requestJson<AccessRequest>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/access-requests`,
+        { method: 'POST', body: JSON.stringify(input) },
+      ),
+    decideAccessRequest: (tenantId, requestId, input) =>
+      requestJson<AccessRequest>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/access-requests/${encodeURIComponent(requestId)}/decisions`,
+        { method: 'POST', body: JSON.stringify(input) },
+      ),
+    activateAccessRequest: (tenantId, requestId) =>
+      requestJson<AccessRequest>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/access-requests/${encodeURIComponent(requestId)}/activate`,
+        { method: 'POST' },
       ),
   };
 }

@@ -11,6 +11,7 @@ import { DecisionControls } from './features/reviews/DecisionControls.js';
 import { PolicyQueue } from './features/reviews/PolicyQueue.js';
 import { WorkflowLibrary } from './features/workflows/WorkflowLibrary.js';
 import { ActionQueue } from './features/actions/ActionQueue.js';
+import { AccessRequestQueue } from './features/requests/AccessRequestQueue.js';
 import {
   aegisApi,
   type FindingDetail,
@@ -23,6 +24,7 @@ import {
   type WorkflowExecution,
   type ControlledAction,
   type TestTenantActivationSummary,
+  type AccessRequest,
 } from './lib/api.js';
 import './styles.css';
 
@@ -53,6 +55,8 @@ export function AegisConsole() {
   const [testActivations, setTestActivations] = useState<readonly TestTenantActivationSummary[]>(
     [],
   );
+  const [accessRequests, setAccessRequests] = useState<readonly AccessRequest[]>([]);
+  const [accessRequestsLoading, setAccessRequestsLoading] = useState(true);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setQuery(search), 200);
@@ -84,6 +88,36 @@ export function AegisConsole() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    void aegisApi.listAccessRequests(tenantId).then((next) => {
+      if (!active) return;
+      setAccessRequests(next);
+      setAccessRequestsLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function requestGithubAccess() {
+    const created = await aegisApi.createAccessRequest(tenantId, {
+      catalogItemId: 'github-maintain',
+      requester: 'Aegis Admin',
+      rationale: 'Time-bound investigation requested from the access console.',
+      durationMinutes: 60,
+      idempotencyKey: `console:github-maintain:${crypto.randomUUID()}`,
+    });
+    setAccessRequests((current) => [created, ...current]);
+  }
+
+  async function updateAccessRequest(operation: () => Promise<AccessRequest>) {
+    const updated = await operation();
+    setAccessRequests((current) =>
+      current.map((request) => (request.id === updated.id ? updated : request)),
+    );
+  }
 
   useEffect(() => {
     let active = true;
@@ -374,6 +408,28 @@ export function AegisConsole() {
                 aegisApi.executeAction(tenantId, action.id, 'Action executor'),
               )
             }
+          />
+        </div>
+      ) : activeNavigation === 'Access' ? (
+        <div className="inventory-page discovery-page">
+          <AccessRequestQueue
+            loading={accessRequestsLoading}
+            onActivate={(request) =>
+              updateAccessRequest(() => aegisApi.activateAccessRequest(tenantId, request.id))
+            }
+            onDecide={(request, approved) =>
+              updateAccessRequest(() =>
+                aegisApi.decideAccessRequest(tenantId, request.id, {
+                  reviewer: 'resource-owner@acme.dev',
+                  approved,
+                  reason: approved
+                    ? 'Time-bounded access is appropriate for the recorded purpose.'
+                    : 'The recorded purpose does not justify elevated access.',
+                }),
+              )
+            }
+            onRequest={requestGithubAccess}
+            requests={accessRequests}
           />
         </div>
       ) : (

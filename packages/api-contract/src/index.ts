@@ -14,6 +14,7 @@ import type {
   CreateActionInput,
 } from '@aegis/action-contract';
 import type { ActionKind, MockProviderId } from '@aegis/action-contract';
+import type { AccessRequest, CreateAccessRequestInput } from '@aegis/access-requests';
 
 export type { CatalogApplication, CatalogOwner, DiscoveryObservation, DiscoveryQueueItem };
 export type { PolicyEvaluation };
@@ -25,6 +26,7 @@ export type {
   ControlledAction,
   CreateActionInput,
 };
+export type { AccessRequest, CreateAccessRequestInput };
 
 export interface TestTenantActivationSummary {
   readonly id: string;

@@ -29,6 +29,8 @@ import type { DiscoveryReviewPolicyManager } from './review-policies.js';
 import type { WorkflowManager } from './workflows.js';
 import type { ActionManager, OffboardingActionInput } from './actions.js';
 import type { ProviderCertificationManager, ProviderCertificationInput } from './certifications.js';
+import type { AccessRequestManager } from './access-requests.js';
+import type { CreateAccessRequestInput } from '@aegis/access-requests';
 import type { CreateTestTenantActivationInput } from '@aegis/provider-certification';
 
 export type { FindingReader } from './findings.js';
@@ -63,6 +65,7 @@ export interface ApiServices {
   readonly workflows?: WorkflowManager;
   readonly actions?: ActionManager;
   readonly certifications?: ProviderCertificationManager;
+  readonly accessRequests?: AccessRequestManager;
 }
 
 function isStringArray(value: unknown): value is readonly string[] {
@@ -296,6 +299,28 @@ function isProviderCertificationInput(value: unknown): value is ProviderCertific
     )
   );
 }
+function isAccessRequestInput(value: unknown): value is CreateAccessRequestInput {
+  if (!value || typeof value !== 'object') return false;
+  const x = value as Record<string, unknown>;
+  return (
+    typeof x.catalogItemId === 'string' &&
+    typeof x.requester === 'string' &&
+    typeof x.rationale === 'string' &&
+    typeof x.durationMinutes === 'number' &&
+    typeof x.idempotencyKey === 'string'
+  );
+}
+function isAccessDecisionInput(
+  value: unknown,
+): value is { reviewer: string; approved: boolean; reason: string } {
+  if (!value || typeof value !== 'object') return false;
+  const x = value as Record<string, unknown>;
+  return (
+    typeof x.reviewer === 'string' &&
+    typeof x.approved === 'boolean' &&
+    typeof x.reason === 'string'
+  );
+}
 
 function isCampaignDecisionInput(value: unknown): value is RecordCampaignDecisionInput {
   if (!value || typeof value !== 'object') return false;
@@ -362,6 +387,67 @@ export function createApp(graph: AccessGraphRepository, services: ApiServices = 
   const findings = services.findings ?? new GraphFindingReader(graph);
   app.get('/health', async () => ({ status: 'ok' }));
   app.get('/ready', async () => ({ status: 'ready' }));
+  app.get<{ Params: { tenantId: string } }>(
+    '/v1/tenants/:tenantId/access-requests',
+    async (request, reply) => {
+      if (!services.accessRequests)
+        return reply.code(501).send({ error: 'access_requests_not_configured' });
+      return services.accessRequests.list(request.params.tenantId);
+    },
+  );
+  app.post<{ Params: { tenantId: string }; Body: unknown }>(
+    '/v1/tenants/:tenantId/access-requests',
+    async (request, reply) => {
+      if (!isAccessRequestInput(request.body))
+        return reply.code(400).send({ error: 'invalid_access_request' });
+      if (!services.accessRequests)
+        return reply.code(501).send({ error: 'access_requests_not_configured' });
+      try {
+        return await services.accessRequests.create(request.params.tenantId, request.body);
+      } catch (cause) {
+        return reply
+          .code(400)
+          .send({ error: cause instanceof Error ? cause.message : 'access_request_failed' });
+      }
+    },
+  );
+  app.post<{ Params: { tenantId: string; requestId: string }; Body: unknown }>(
+    '/v1/tenants/:tenantId/access-requests/:requestId/decisions',
+    async (request, reply) => {
+      if (!isAccessDecisionInput(request.body))
+        return reply.code(400).send({ error: 'invalid_access_request_decision' });
+      if (!services.accessRequests)
+        return reply.code(501).send({ error: 'access_requests_not_configured' });
+      try {
+        return await services.accessRequests.decide(
+          request.params.tenantId,
+          request.params.requestId,
+          request.body,
+        );
+      } catch (cause) {
+        return reply.code(400).send({
+          error: cause instanceof Error ? cause.message : 'access_request_decision_failed',
+        });
+      }
+    },
+  );
+  app.post<{ Params: { tenantId: string; requestId: string } }>(
+    '/v1/tenants/:tenantId/access-requests/:requestId/activate',
+    async (request, reply) => {
+      if (!services.accessRequests)
+        return reply.code(501).send({ error: 'access_requests_not_configured' });
+      try {
+        return await services.accessRequests.activate(
+          request.params.tenantId,
+          request.params.requestId,
+        );
+      } catch (cause) {
+        return reply.code(400).send({
+          error: cause instanceof Error ? cause.message : 'access_request_activation_failed',
+        });
+      }
+    },
+  );
   app.get<{ Params: { tenantId: string } }>(
     '/v1/tenants/:tenantId/test-activations',
     async (request, reply) => {

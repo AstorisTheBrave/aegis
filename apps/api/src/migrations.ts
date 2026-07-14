@@ -10,6 +10,8 @@ const migrations = [
   '0006_policy_review_context.sql',
   '0007_workflows.sql',
   '0008_controlled_actions.sql',
+  '0009_provider_certification.sql',
+  '0010_access_requests.sql',
 ] as const;
 
 export async function runMigrations(pool: Pool): Promise<void> {
@@ -69,6 +71,24 @@ export async function runMigrations(pool: Pool): Promise<void> {
     await pool.query(
       `INSERT INTO governance_schema_migrations (name)
        VALUES ('0008_controlled_actions.sql') ON CONFLICT (name) DO NOTHING`,
+    );
+  }
+  const certificationTable = await pool.query<{ exists: boolean }>(
+    `SELECT to_regclass('public.governance_test_tenant_activations') IS NOT NULL AS exists`,
+  );
+  if (certificationTable.rows[0]?.exists) {
+    await pool.query(
+      `INSERT INTO governance_schema_migrations (name)
+       VALUES ('0009_provider_certification.sql') ON CONFLICT (name) DO NOTHING`,
+    );
+  }
+  const accessRequestsTable = await pool.query<{ exists: boolean }>(
+    `SELECT to_regclass('public.governance_access_requests') IS NOT NULL AS exists`,
+  );
+  if (accessRequestsTable.rows[0]?.exists) {
+    await pool.query(
+      `INSERT INTO governance_schema_migrations (name)
+       VALUES ('0010_access_requests.sql') ON CONFLICT (name) DO NOTHING`,
     );
   }
   for (const migration of migrations) {

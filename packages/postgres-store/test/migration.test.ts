@@ -30,6 +30,10 @@ const providerCertificationMigration = await readFile(
   new URL('../migrations/0009_provider_certification.sql', import.meta.url),
   'utf8',
 );
+const accessRequestsMigration = await readFile(
+  new URL('../migrations/0010_access_requests.sql', import.meta.url),
+  'utf8',
+);
 
 describe('0001 access graph migration', () => {
   it('keeps every graph table tenant-scoped and referentially sound', () => {
@@ -107,5 +111,14 @@ describe('0009 provider certification migration', () => {
       'REFERENCES governance_test_tenant_activations',
     );
     expect(providerCertificationMigration).toContain('CHECK (expires_at > activated_at)');
+  });
+});
+
+describe('0010 access requests migration', () => {
+  it('keeps requests tenant-scoped and idempotent', () => {
+    expect(accessRequestsMigration).toContain('CREATE TABLE governance_access_requests');
+    expect(accessRequestsMigration).toContain('PRIMARY KEY (tenant_id, id)');
+    expect(accessRequestsMigration).toContain('UNIQUE (tenant_id, idempotency_key)');
+    expect(accessRequestsMigration).toContain('governance_access_requests_tenant_requested_idx');
   });
 });

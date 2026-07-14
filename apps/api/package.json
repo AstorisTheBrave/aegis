@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@aegis/action-engine": "workspace:*",
+    "@aegis/access-requests": "workspace:*",
     "@aegis/provider-certification": "workspace:*",
     "@aegis/api-contract": "workspace:*",
     "@aegis/discovery": "workspace:*",
