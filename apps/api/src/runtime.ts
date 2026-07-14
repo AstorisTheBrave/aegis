@@ -3,11 +3,14 @@ import { Pool } from 'pg';
 import {
   PostgresAccessGraphRepository,
   PostgresAuditLedger,
+  PostgresExtensionRegistryRepository,
   PostgresReviewCampaignRepository,
   PostgresSyncRunStore,
 } from '@open-saas-governance/postgres-store';
+import { ExtensionRegistry } from '@aegis/extension-registry';
 import { GraphReviewCampaignManager } from './review-campaigns.js';
 import { StoredCampaignEvidenceReader } from './evidence.js';
+import { VerifiedExtensionRegistryManager } from './extensions.js';
 import { createApp } from './app.js';
 import { runMigrations } from './migrations.js';
 
@@ -42,10 +45,12 @@ export async function createRuntime(
     const graph = new PostgresAccessGraphRepository(pool);
     const audit = new PostgresAuditLedger(pool);
     const reviewRepository = new PostgresReviewCampaignRepository(pool);
+    const extensionRepository = new PostgresExtensionRegistryRepository(pool);
     const campaigns = new GraphReviewCampaignManager(graph, reviewRepository, audit);
     const app = createApp(graph, {
       campaigns,
       campaignEvidence: new StoredCampaignEvidenceReader(reviewRepository, audit),
+      extensions: new VerifiedExtensionRegistryManager(new ExtensionRegistry(extensionRepository)),
       syncRuns: new PostgresSyncRunStore(pool),
     });
     return {

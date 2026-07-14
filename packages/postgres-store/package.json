@@ -13,6 +13,7 @@
     "typecheck": "tsc --project tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@aegis/extension-registry": "workspace:*",
     "@aegis/findings": "workspace:*",
     "@aegis/ingestion": "workspace:*",
     "@aegis/reviews": "workspace:*",

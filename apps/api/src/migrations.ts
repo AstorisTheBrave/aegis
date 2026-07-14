@@ -5,6 +5,7 @@ const migrations = [
   '0001_access_graph.sql',
   '0002_review_campaigns.sql',
   '0003_sync_runs.sql',
+  '0004_extension_registry.sql',
 ] as const;
 
 export async function runMigrations(pool: Pool): Promise<void> {
@@ -18,6 +19,7 @@ export async function runMigrations(pool: Pool): Promise<void> {
     ['0001_access_graph.sql', 'governance_identities'],
     ['0002_review_campaigns.sql', 'governance_review_campaigns'],
     ['0003_sync_runs.sql', 'governance_sync_runs'],
+    ['0004_extension_registry.sql', 'governance_extensions'],
   ] as const) {
     const existing = await pool.query<{ exists: boolean }>(
       `SELECT to_regclass($1) IS NOT NULL AS exists`,

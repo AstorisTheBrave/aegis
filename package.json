@@ -13,6 +13,7 @@
     "dev": "turbo run dev --parallel",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "test:sdks": "node scripts/test-sdks.mjs",
     "test:e2e": "turbo run test:e2e",
     "typecheck": "turbo run typecheck",
     "format": "prettier --check .",

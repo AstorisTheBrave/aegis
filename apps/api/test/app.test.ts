@@ -32,6 +32,29 @@ async function createGraph() {
 }
 
 const services: ApiServices = {
+  extensions: {
+    async list() {
+      return [
+        {
+          id: 'soc2-baseline',
+          version: '1.0.0',
+          kind: 'policy-pack' as const,
+          publishedAt: '2026-07-14T00:00:00.000Z',
+          maintainer: { name: 'Aegis Community', contact: 'security@example.test' },
+        },
+      ];
+    },
+    async install(input) {
+      if (!input || typeof input !== 'object') throw new Error('Invalid signed extension artifact');
+      return {
+        id: 'soc2-baseline',
+        version: '1.0.0',
+        kind: 'policy-pack' as const,
+        publishedAt: '2026-07-14T00:00:00.000Z',
+        maintainer: { name: 'Aegis Community', contact: 'security@example.test' },
+      };
+    },
+  },
   campaignEvidence: {
     async export(tenantId, campaignId) {
       return {
@@ -163,6 +186,9 @@ describe('Aegis API', () => {
     const app = createApp(await createGraph(), services);
     expect((await app.inject('/health')).json()).toEqual({ status: 'ok' });
     expect((await app.inject('/ready')).json()).toEqual({ status: 'ready' });
+    expect((await app.inject('/v1/extensions?kind=policy-pack')).json()).toMatchObject([
+      { id: 'soc2-baseline', kind: 'policy-pack' },
+    ]);
     expect((await app.inject('/v1/tenants/acme/sync-runs')).json()).toMatchObject([
       { connectorId: 'github-cloud', status: 'completed' },
     ]);
@@ -231,6 +257,10 @@ describe('Aegis API', () => {
     const app = createApp(await createGraph());
     expect((await app.inject('/v1/tenants/acme/findings/PRV-2025-00073')).statusCode).toBe(404);
     expect((await app.inject('/v1/tenants/acme/findings')).json()).toEqual([]);
+    expect((await app.inject('/v1/extensions')).statusCode).toBe(501);
+    expect(
+      (await app.inject({ method: 'POST', url: '/v1/extensions', payload: null })).statusCode,
+    ).toBe(501);
     expect(
       (
         await app.inject({

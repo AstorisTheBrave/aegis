@@ -16,10 +16,12 @@ import type { SyncRunStore } from '@aegis/ingestion';
 import { GraphFindingReader, type FindingReader } from './findings.js';
 import type { CampaignEvidenceReader } from './evidence.js';
 import type { ReviewCampaignManager } from './review-campaigns.js';
+import type { ExtensionRegistryManager } from './extensions.js';
 
 export type { FindingReader } from './findings.js';
 export type { CampaignEvidenceReader } from './evidence.js';
 export type { ReviewCampaignManager } from './review-campaigns.js';
+export type { ExtensionRegistryManager } from './extensions.js';
 
 export interface ReviewDecisionRecorder {
   record(
@@ -40,6 +42,7 @@ export interface ApiServices {
   readonly campaignEvidence?: CampaignEvidenceReader;
   readonly reviews?: ReviewDecisionRecorder;
   readonly evidence?: EvidenceExporter;
+  readonly extensions?: ExtensionRegistryManager;
 }
 
 function isCreateCampaignInput(value: unknown): value is CreateReviewCampaignInput {
@@ -121,6 +124,30 @@ export function createApp(graph: AccessGraphRepository, services: ApiServices = 
   const findings = services.findings ?? new GraphFindingReader(graph);
   app.get('/health', async () => ({ status: 'ok' }));
   app.get('/ready', async () => ({ status: 'ready' }));
+  app.get<{ Querystring: { kind?: 'connector' | 'policy-pack' } }>(
+    '/v1/extensions',
+    async (request, reply) => {
+      if (!services.extensions) return reply.code(501).send({ error: 'extensions_not_configured' });
+      if (
+        request.query.kind &&
+        request.query.kind !== 'connector' &&
+        request.query.kind !== 'policy-pack'
+      ) {
+        return reply.code(400).send({ error: 'invalid_extension_kind' });
+      }
+      return services.extensions.list(request.query.kind);
+    },
+  );
+  app.post<{ Body: unknown }>('/v1/extensions', async (request, reply) => {
+    if (!services.extensions) return reply.code(501).send({ error: 'extensions_not_configured' });
+    try {
+      return await services.extensions.install(request.body);
+    } catch (cause) {
+      return reply.code(400).send({
+        error: cause instanceof Error ? cause.message : 'extension_installation_failed',
+      });
+    }
+  });
   app.get<{ Params: { tenantId: string } }>(
     '/v1/tenants/:tenantId/sync-runs',
     async (request, reply) => {
