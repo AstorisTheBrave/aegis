@@ -1,4 +1,6 @@
 import type {
+  CatalogApplication,
+  CatalogOwner,
   CampaignEvidenceBundle,
   EvidenceBundle,
   FindingDetail,
@@ -6,6 +8,7 @@ import type {
   RecordedReviewDecision,
   ReviewDecision,
   ReviewCampaignSummary,
+  DiscoveryQueueItem,
 } from '@aegis/api-contract';
 
 export type {
@@ -18,6 +21,9 @@ export type {
   RecordedReviewDecision,
   ReviewDecision,
   ReviewCampaignSummary,
+  CatalogApplication,
+  CatalogOwner,
+  DiscoveryQueueItem,
 } from '@aegis/api-contract';
 
 export interface AegisApi {
@@ -41,7 +47,102 @@ export interface AegisApi {
     },
   ): Promise<ReviewCampaignSummary>;
   exportCampaignEvidence(tenantId: string, campaignId: string): Promise<CampaignEvidenceBundle>;
+  listCatalog(tenantId: string): Promise<readonly CatalogApplication[]>;
+  listDiscoveryQueue(tenantId: string): Promise<readonly DiscoveryQueueItem[]>;
+  assignCatalogOwners(
+    tenantId: string,
+    applicationId: string,
+    owners: readonly CatalogOwner[],
+  ): Promise<CatalogApplication>;
 }
+
+const sampleCatalog: readonly CatalogApplication[] = [
+  {
+    tenantId: 'acme-platform',
+    id: 'slack',
+    vendorName: 'Slack',
+    normalizedName: 'slack',
+    domains: ['slack.com'],
+    aliases: ['slack technologies'],
+    category: 'Collaboration',
+    riskTier: 'high',
+    dataClassification: 'confidential',
+    recommendation: 'monitor',
+    owners: [],
+    approvedAlternatives: ['Mattermost'],
+    renewalAt: '2026-12-01T00:00:00.000Z',
+    createdAt: '2026-07-14T00:00:00.000Z',
+    updatedAt: '2026-07-14T00:00:00.000Z',
+  },
+  {
+    tenantId: 'acme-platform',
+    id: 'github',
+    vendorName: 'GitHub',
+    normalizedName: 'github',
+    domains: ['github.com'],
+    aliases: [],
+    category: 'Engineering',
+    riskTier: 'critical',
+    dataClassification: 'restricted',
+    recommendation: 'monitor',
+    owners: [
+      { identityId: 'alice-example', role: 'technical', assignedAt: '2026-07-14T00:00:00.000Z' },
+    ],
+    approvedAlternatives: [],
+    createdAt: '2026-07-14T00:00:00.000Z',
+    updatedAt: '2026-07-14T00:00:00.000Z',
+  },
+];
+
+const sampleDiscoveryQueue: readonly DiscoveryQueueItem[] = [
+  {
+    observation: {
+      tenantId: 'acme-platform',
+      id: 'sso:slack:1',
+      source: 'sso_log',
+      sourceReference: 'sign-in/slack',
+      vendorName: 'Slack',
+      domain: 'slack.com',
+      observedAt: '2026-07-14T08:00:00.000Z',
+      activityCount: 0,
+      identityType: 'service_account',
+      metadata: { eventKind: 'signin' },
+    },
+    application: sampleCatalog[0],
+    reasons: ['missing_owner', 'high_risk', 'unused_license', 'non_human_access'],
+    recommendation: 'monitor',
+    usage: {
+      tenantId: 'acme-platform',
+      appId: 'slack',
+      observationId: 'sso:slack:1',
+      observedAt: '2026-07-14T08:00:00.000Z',
+      activityCount: 0,
+      source: 'sso_log',
+    },
+  },
+  {
+    observation: {
+      tenantId: 'acme-platform',
+      id: 'finance:design-tool:1',
+      source: 'finance',
+      sourceReference: 'expense/2026-07-001',
+      vendorName: 'Design Tool',
+      domain: 'design-tool.example',
+      observedAt: '2026-07-13T12:00:00.000Z',
+      activityCount: 2,
+      identityType: 'human',
+    },
+    reasons: ['unknown_app'],
+    recommendation: 'monitor',
+    usage: {
+      tenantId: 'acme-platform',
+      observationId: 'finance:design-tool:1',
+      observedAt: '2026-07-13T12:00:00.000Z',
+      activityCount: 2,
+      source: 'finance',
+    },
+  },
+];
 
 const sampleIdentities: readonly IdentitySummary[] = [
   {
@@ -267,6 +368,17 @@ export const demoApi: AegisApi = {
       manifestSha256: '07dfa1f211ddf708df25a3f76d6b56628087cdc2db849b6c4fe13e17f1a15e7b',
     };
   },
+  async listCatalog() {
+    return sampleCatalog;
+  },
+  async listDiscoveryQueue() {
+    return sampleDiscoveryQueue;
+  },
+  async assignCatalogOwners(_tenantId, applicationId, owners) {
+    const application = sampleCatalog.find((candidate) => candidate.id === applicationId);
+    if (!application) throw new Error('The requested catalog application was not found.');
+    return { ...application, owners, updatedAt: new Date().toISOString() };
+  },
 };
 
 async function requestJson<T>(baseUrl: string, path: string, init?: RequestInit): Promise<T> {
@@ -322,6 +434,22 @@ export function createHttpApi(baseUrl: string): AegisApi {
       requestJson<CampaignEvidenceBundle>(
         baseUrl,
         `/v1/tenants/${encodeURIComponent(tenantId)}/review-campaigns/${encodeURIComponent(campaignId)}/evidence/export`,
+      ),
+    listCatalog: (tenantId) =>
+      requestJson<readonly CatalogApplication[]>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/apps`,
+      ),
+    listDiscoveryQueue: (tenantId) =>
+      requestJson<readonly DiscoveryQueueItem[]>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/discovery-queue`,
+      ),
+    assignCatalogOwners: (tenantId, applicationId, owners) =>
+      requestJson<CatalogApplication>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/apps/${encodeURIComponent(applicationId)}/owners`,
+        { method: 'POST', body: JSON.stringify({ owners }) },
       ),
   };
 }

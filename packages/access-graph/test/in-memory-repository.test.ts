@@ -17,6 +17,7 @@ const batch: GraphSyncBatch = {
         connectorId: 'github-cloud',
         externalId: '123',
         displayName: 'Alice Example',
+        identityType: 'service_account',
         email: 'alice@example.com',
         status: 'ACTIVE',
         observedAt: '2026-07-14T10:00:00.000Z',
@@ -79,6 +80,7 @@ describe('InMemoryAccessGraphRepository', () => {
 
     await expect(repository.getIdentity('tenant-acme', 'identity-alice')).resolves.toMatchObject({
       email: 'alice@example.com',
+      identityType: 'service_account',
     });
     await expect(
       repository.listAccessForIdentity('tenant-acme', 'identity-alice'),

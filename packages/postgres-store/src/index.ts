@@ -3,3 +3,5 @@ export { PostgresAuditLedger } from './postgres-audit-ledger.js';
 export { PostgresExtensionRegistryRepository } from './postgres-extension-registry-repository.js';
 export { PostgresReviewCampaignRepository } from './postgres-review-campaign-repository.js';
 export { PostgresSyncRunStore } from './postgres-sync-run-store.js';
+export { PostgresDiscoveryRepository } from './postgres-discovery-repository.js';
+export { PostgresSaasCatalogRepository } from './postgres-saas-catalog-repository.js';

@@ -22,6 +22,9 @@ importers:
       '@aegis/api-contract':
         specifier: workspace:*
         version: link:../../packages/api-contract
+      '@aegis/discovery':
+        specifier: workspace:*
+        version: link:../../packages/discovery
       '@aegis/evidence-export':
         specifier: workspace:*
         version: link:../../packages/evidence-export
@@ -37,6 +40,9 @@ importers:
       '@aegis/reviews':
         specifier: workspace:*
         version: link:../../packages/reviews
+      '@aegis/saas-catalog':
+        specifier: workspace:*
+        version: link:../../packages/saas-catalog
       '@open-saas-governance/access-graph':
         specifier: workspace:*
         version: link:../../packages/access-graph
@@ -132,6 +138,13 @@ importers:
         version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
 
   packages/api-contract:
+    dependencies:
+      '@aegis/discovery':
+        specifier: workspace:*
+        version: link:../discovery
+      '@aegis/saas-catalog':
+        specifier: workspace:*
+        version: link:../saas-catalog
     devDependencies:
       typescript:
         specifier: 7.0.2
@@ -179,6 +192,19 @@ importers:
         version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
 
   packages/credential-host:
+    devDependencies:
+      '@types/node':
+        specifier: 24.1.0
+        version: 24.1.0
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
+  packages/discovery:
+    dependencies:
+      '@aegis/saas-catalog':
+        specifier: workspace:*
+        version: link:../saas-catalog
     devDependencies:
       '@types/node':
         specifier: 24.1.0
@@ -257,6 +283,9 @@ importers:
 
   packages/postgres-store:
     dependencies:
+      '@aegis/discovery':
+        specifier: workspace:*
+        version: link:../discovery
       '@aegis/extension-registry':
         specifier: workspace:*
         version: link:../extension-registry
@@ -269,6 +298,9 @@ importers:
       '@aegis/reviews':
         specifier: workspace:*
         version: link:../reviews
+      '@aegis/saas-catalog':
+        specifier: workspace:*
+        version: link:../saas-catalog
       '@open-saas-governance/access-graph':
         specifier: workspace:*
         version: link:../access-graph
@@ -297,6 +329,15 @@ importers:
       '@open-saas-governance/audit-ledger':
         specifier: workspace:*
         version: link:../audit-ledger
+    devDependencies:
+      '@types/node':
+        specifier: 24.1.0
+        version: 24.1.0
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
+  packages/saas-catalog:
     devDependencies:
       '@types/node':
         specifier: 24.1.0

@@ -432,6 +432,156 @@ h1 {
   justify-content: space-between;
   padding: 13px 1px;
 }
+
+.discovery-list {
+  display: grid;
+  gap: 14px;
+}
+
+.discovery-card {
+  background: #fff;
+  border: 1px solid #dbe4eb;
+  border-radius: 10px;
+  padding: 19px;
+}
+
+.discovery-card header,
+.discovery-card dl,
+.reason-list {
+  align-items: start;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.discovery-card h2 {
+  font-size: 17px;
+  margin: 3px 0;
+}
+
+.discovery-card p {
+  color: #667787;
+  font-size: 13px;
+  margin: 0;
+}
+
+.discovery-card dl {
+  border-top: 1px solid #edf1f4;
+  margin: 16px 0 12px;
+  padding-top: 13px;
+}
+
+.discovery-card dl div {
+  min-width: 0;
+}
+.discovery-card dt {
+  color: #7a8997;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.discovery-card dd {
+  color: #1a3043;
+  font-size: 13px;
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+.reason-list {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.reason-list span,
+.recommendation,
+.risk {
+  border-radius: 999px;
+  font-size: 11px;
+  padding: 5px 8px;
+  text-transform: capitalize;
+}
+.reason-list span {
+  background: #eef3f7;
+  color: #38536a;
+}
+.recommendation {
+  background: #fff6df;
+  color: #7c5606;
+  white-space: nowrap;
+}
+.recommendation-block_recommended {
+  background: #fce9e7;
+  color: #a63125;
+}
+.recommendation-allow {
+  background: #e8f5ec;
+  color: #247042;
+}
+.read-only-note {
+  margin-top: 14px !important;
+}
+
+.catalog-table-wrap {
+  background: #fff;
+  border: 1px solid #dbe4eb;
+  border-radius: 10px;
+  overflow-x: auto;
+}
+.catalog-table {
+  border-collapse: collapse;
+  min-width: 720px;
+  width: 100%;
+}
+.catalog-table th,
+.catalog-table td {
+  border-bottom: 1px solid #edf1f4;
+  padding: 13px 16px;
+  text-align: left;
+}
+.catalog-table th {
+  color: #718190;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.catalog-table td {
+  color: #2e475b;
+  font-size: 13px;
+}
+.catalog-table td small {
+  color: #718190;
+  display: block;
+  margin-top: 3px;
+}
+.owner-assignment {
+  display: flex;
+  gap: 6px;
+}
+.owner-assignment input {
+  border: 1px solid #cbd8e2;
+  border-radius: 5px;
+  font: inherit;
+  min-width: 116px;
+  padding: 5px 7px;
+}
+.owner-assignment button {
+  background: #0d3555;
+  border: 0;
+  border-radius: 5px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 5px 8px;
+}
+.risk {
+  background: #eef3f7;
+  color: #38536a;
+}
+.risk-high,
+.risk-critical {
+  background: #fce9e7;
+  color: #a63125;
+}
+.empty-state {
+  color: #667787;
+  padding: 28px 0;
+}
 .table-footer strong {
   color: #33485d;
 }
