@@ -1,5 +1,19 @@
 import type { Finding } from '@aegis/findings';
 import type { AuditLedger } from '@open-saas-governance/audit-ledger';
+export { InMemoryReviewCampaignRepository, ReviewCampaignService } from './campaigns.js';
+export type {
+  CampaignResource,
+  CampaignStatus,
+  CreateCampaignInput,
+  DecideReviewTaskInput,
+  ReviewCampaign,
+  ReviewCampaignRepository,
+  ReviewDecisionKind,
+  ReviewDecisionRecord,
+  ReviewRoute,
+  ReviewTask,
+  ReviewTaskStatus,
+} from './campaigns.js';
 export type ReviewDecision = 'approved' | 'revocation_requested' | 'needs_information';
 export interface ReviewItem {
   readonly id: string;
