@@ -35,6 +35,10 @@ describeDatabase('PostgreSQL storage adapters', () => {
     import.meta.url,
   );
   const discoveryMigrationUrl = new URL('../migrations/0005_saas_discovery.sql', import.meta.url);
+  const policyReviewMigrationUrl = new URL(
+    '../migrations/0006_policy_review_context.sql',
+    import.meta.url,
+  );
 
   beforeAll(async () => {
     await pool.query(`DROP TABLE IF EXISTS
@@ -56,6 +60,7 @@ describeDatabase('PostgreSQL storage adapters', () => {
     await pool.query(await readFile(syncMigrationUrl, 'utf8'));
     await pool.query(await readFile(extensionMigrationUrl, 'utf8'));
     await pool.query(await readFile(discoveryMigrationUrl, 'utf8'));
+    await pool.query(await readFile(policyReviewMigrationUrl, 'utf8'));
   });
 
   afterAll(async () => {
@@ -118,6 +123,27 @@ describeDatabase('PostgreSQL storage adapters', () => {
     await expect(
       new PostgresReviewCampaignRepository(pool).get('tenant-acme', campaign.id),
     ).resolves.toMatchObject({ status: 'complete', tasks: [{ decisions: [{ kind: 'retain' }] }] });
+
+    const policyCampaign = await reviews.create({
+      tenantId: 'tenant-acme',
+      title: 'Application ownership review',
+      findings: [sampleFinding()],
+      policyContexts: {
+        [sampleFinding().id]: {
+          policyId: 'application-owner.v1',
+          subjectId: 'resource-platform',
+          subjectKind: 'application',
+          displayName: 'acme/platform',
+          evidence: [{ sourceReference: 'acme/platform', observedAt: '2026-07-14T10:03:30.000Z' }],
+        },
+      },
+      resources: [{ id: 'resource-platform', businessOwner: 'owner@example.com' }],
+      actor: 'admin@example.com',
+      createdAt: '2026-07-14T10:03:30.000Z',
+    });
+    await expect(
+      new PostgresReviewCampaignRepository(pool).get('tenant-acme', policyCampaign.id),
+    ).resolves.toMatchObject({ tasks: [{ policy: { policyId: 'application-owner.v1' } }] });
 
     const syncRuns = new PostgresSyncRunStore(pool);
     await syncRuns.start({

@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import type {
   AssignCatalogOwnersInput,
+  CreatePolicyReviewCampaignInput,
   CreateCatalogApplicationInput,
   CreateReviewCampaignInput,
   EvidenceBundle,
@@ -18,7 +19,7 @@ import type {
 import type { SyncRunStore } from '@aegis/ingestion';
 import { GraphFindingReader, type FindingReader } from './findings.js';
 import type { CampaignEvidenceReader } from './evidence.js';
-import type { ReviewCampaignManager } from './review-campaigns.js';
+import type { PolicyReviewCampaignManager, ReviewCampaignManager } from './review-campaigns.js';
 import type { ExtensionRegistryManager } from './extensions.js';
 import type { DiscoveryManager } from './discovery.js';
 import type { DiscoveryReviewPolicyManager } from './review-policies.js';
@@ -51,6 +52,7 @@ export interface ApiServices {
   readonly extensions?: ExtensionRegistryManager;
   readonly discovery?: DiscoveryManager;
   readonly reviewPolicies?: DiscoveryReviewPolicyManager;
+  readonly policyCampaigns?: PolicyReviewCampaignManager;
 }
 
 function isStringArray(value: unknown): value is readonly string[] {
@@ -140,6 +142,19 @@ function isCreateCampaignInput(value: unknown): value is CreateReviewCampaignInp
   );
 }
 
+function isCreatePolicyCampaignInput(value: unknown): value is CreatePolicyReviewCampaignInput {
+  if (!value || typeof value !== 'object') return false;
+  const input = value as Record<string, unknown>;
+  return (
+    typeof input.title === 'string' &&
+    typeof input.actor === 'string' &&
+    (!('policyIds' in input) ||
+      (Array.isArray(input.policyIds) && input.policyIds.every((id) => typeof id === 'string'))) &&
+    (!('fallbackReviewer' in input) || typeof input.fallbackReviewer === 'string') &&
+    (!('dueAt' in input) || typeof input.dueAt === 'string')
+  );
+}
+
 function isCampaignDecisionInput(value: unknown): value is RecordCampaignDecisionInput {
   if (!value || typeof value !== 'object') return false;
   const input = value as Record<string, unknown>;
@@ -211,6 +226,33 @@ export function createApp(graph: AccessGraphRepository, services: ApiServices = 
       if (!services.reviewPolicies)
         return reply.code(501).send({ error: 'review_policies_not_configured' });
       return services.reviewPolicies.list(request.params.tenantId);
+    },
+  );
+  app.get<{ Params: { tenantId: string } }>(
+    '/v1/tenants/:tenantId/policy-review-campaigns',
+    async (request, reply) => {
+      if (!services.policyCampaigns) {
+        return reply.code(501).send({ error: 'policy_review_campaigns_not_configured' });
+      }
+      return services.policyCampaigns.list(request.params.tenantId);
+    },
+  );
+  app.post<{ Params: { tenantId: string }; Body: unknown }>(
+    '/v1/tenants/:tenantId/policy-review-campaigns',
+    async (request, reply) => {
+      if (!isCreatePolicyCampaignInput(request.body)) {
+        return reply.code(400).send({ error: 'invalid_policy_review_campaign' });
+      }
+      if (!services.policyCampaigns) {
+        return reply.code(501).send({ error: 'policy_review_campaigns_not_configured' });
+      }
+      try {
+        return await services.policyCampaigns.create(request.params.tenantId, request.body);
+      } catch (cause) {
+        return reply.code(400).send({
+          error: cause instanceof Error ? cause.message : 'policy_review_campaign_creation_failed',
+        });
+      }
     },
   );
   app.get<{ Params: { tenantId: string } }>(

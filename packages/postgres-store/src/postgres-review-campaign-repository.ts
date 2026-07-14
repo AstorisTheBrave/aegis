@@ -4,6 +4,7 @@ import type {
   ReviewDecisionRecord,
   ReviewRoute,
   ReviewTask,
+  ReviewTaskPolicy,
   ReviewTaskStatus,
 } from '@aegis/reviews';
 import type { Finding } from '@aegis/findings';
@@ -21,6 +22,7 @@ type TaskRow = {
   id: string;
   campaign_id: string;
   finding: Finding;
+  policy: ReviewTaskPolicy | null;
   resource_id: string | null;
   assigned_reviewer: string | null;
   route: ReviewRoute;
@@ -60,13 +62,14 @@ export class PostgresReviewCampaignRepository implements ReviewCampaignRepositor
       for (const task of campaign.tasks) {
         await client.query(
           `INSERT INTO governance_review_tasks
-            (tenant_id, id, campaign_id, finding, resource_id, assigned_reviewer, route, due_at, status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+            (tenant_id, id, campaign_id, finding, policy, resource_id, assigned_reviewer, route, due_at, status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           [
             task.tenantId,
             task.id,
             task.campaignId,
             task.finding,
+            task.policy ?? null,
             task.resourceId ?? null,
             task.assignedReviewer ?? null,
             task.route,
@@ -115,7 +118,7 @@ export class PostgresReviewCampaignRepository implements ReviewCampaignRepositor
     try {
       await client.query('BEGIN');
       const task = await client.query<TaskRow>(
-        `SELECT tenant_id, id, campaign_id, finding, resource_id, assigned_reviewer, route, due_at, status
+        `SELECT tenant_id, id, campaign_id, finding, policy, resource_id, assigned_reviewer, route, due_at, status
            FROM governance_review_tasks
           WHERE tenant_id = $1 AND id = $2
           FOR UPDATE`,
@@ -169,7 +172,7 @@ export class PostgresReviewCampaignRepository implements ReviewCampaignRepositor
 
   private async hydrate(campaign: CampaignRow): Promise<ReviewCampaign> {
     const tasks = await this.pool.query<TaskRow>(
-      `SELECT tenant_id, id, campaign_id, finding, resource_id, assigned_reviewer, route, due_at, status
+      `SELECT tenant_id, id, campaign_id, finding, policy, resource_id, assigned_reviewer, route, due_at, status
          FROM governance_review_tasks
         WHERE tenant_id = $1 AND campaign_id = $2
         ORDER BY id`,
@@ -198,7 +201,7 @@ export class PostgresReviewCampaignRepository implements ReviewCampaignRepositor
     taskId: string,
   ): Promise<ReviewTask> {
     const task = await queryable.query<TaskRow>(
-      `SELECT tenant_id, id, campaign_id, finding, resource_id, assigned_reviewer, route, due_at, status
+      `SELECT tenant_id, id, campaign_id, finding, policy, resource_id, assigned_reviewer, route, due_at, status
          FROM governance_review_tasks
         WHERE tenant_id = $1 AND id = $2`,
       [tenantId, taskId],
@@ -217,6 +220,7 @@ export class PostgresReviewCampaignRepository implements ReviewCampaignRepositor
       tenantId: row.tenant_id,
       campaignId: row.campaign_id,
       finding: row.finding,
+      ...(row.policy ? { policy: row.policy } : {}),
       ...(row.resource_id ? { resourceId: row.resource_id } : {}),
       ...(row.assigned_reviewer ? { assignedReviewer: row.assigned_reviewer } : {}),
       route: row.route,

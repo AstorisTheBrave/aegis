@@ -1,6 +1,6 @@
 import type { DiscoveryObservation, DiscoveryQueueItem } from '@aegis/discovery';
 import type { CatalogApplication, CatalogOwner } from '@aegis/saas-catalog';
-import type { PolicyEvaluation } from '@aegis/review-policies';
+import type { PolicyEvaluation, ReviewPolicyId } from '@aegis/review-policies';
 
 export type { CatalogApplication, CatalogOwner, DiscoveryObservation, DiscoveryQueueItem };
 export type { PolicyEvaluation };
@@ -101,6 +101,7 @@ export interface ReviewCampaignTask {
   readonly id: string;
   readonly findingId: string;
   readonly findingTitle: string;
+  readonly policy?: ReviewCampaignTaskPolicy;
   readonly severity: 'low' | 'medium' | 'high';
   readonly assignedReviewer?: string;
   readonly route: 'resource_owner' | 'fallback_reviewer' | 'unassigned' | 'delegated';
@@ -108,6 +109,14 @@ export interface ReviewCampaignTask {
   readonly status: 'open' | 'completed';
   readonly decisionCount: number;
   readonly decisions: readonly ReviewCampaignDecision[];
+}
+
+export interface ReviewCampaignTaskPolicy {
+  readonly policyId: ReviewPolicyId;
+  readonly subjectId: string;
+  readonly subjectKind: 'application' | 'non_human_identity';
+  readonly displayName: string;
+  readonly evidence: readonly { readonly sourceReference: string; readonly observedAt: string }[];
 }
 
 export interface ReviewCampaignSummary {
@@ -122,6 +131,14 @@ export interface ReviewCampaignSummary {
 export interface CreateReviewCampaignInput {
   readonly title: string;
   readonly findingIds?: readonly string[];
+  readonly fallbackReviewer?: string;
+  readonly dueAt?: string;
+  readonly actor: string;
+}
+
+export interface CreatePolicyReviewCampaignInput {
+  readonly title: string;
+  readonly policyIds?: readonly ReviewPolicyId[];
   readonly fallbackReviewer?: string;
   readonly dueAt?: string;
   readonly actor: string;

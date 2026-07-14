@@ -9,6 +9,7 @@ import type {
   ReviewDecision,
   ReviewCampaignSummary,
   DiscoveryQueueItem,
+  PolicyEvaluation,
 } from '@aegis/api-contract';
 
 export type {
@@ -24,6 +25,7 @@ export type {
   CatalogApplication,
   CatalogOwner,
   DiscoveryQueueItem,
+  PolicyEvaluation,
 } from '@aegis/api-contract';
 
 export interface AegisApi {
@@ -36,6 +38,16 @@ export interface AegisApi {
   ): Promise<RecordedReviewDecision>;
   exportEvidence(tenantId: string): Promise<EvidenceBundle>;
   listReviewCampaigns(tenantId: string): Promise<readonly ReviewCampaignSummary[]>;
+  listReviewPolicies(tenantId: string): Promise<readonly PolicyEvaluation[]>;
+  createPolicyReviewCampaign(
+    tenantId: string,
+    input: {
+      title: string;
+      policyIds?: readonly PolicyEvaluation['policyId'][];
+      fallbackReviewer?: string;
+      actor: string;
+    },
+  ): Promise<ReviewCampaignSummary>;
   recordCampaignDecision(
     tenantId: string,
     campaignId: string,
@@ -314,6 +326,38 @@ const sampleCampaigns: readonly ReviewCampaignSummary[] = [
   },
 ];
 
+const sampleReviewPolicies: readonly PolicyEvaluation[] = [
+  {
+    policyId: 'application-owner.v1',
+    subject: {
+      id: 'slack',
+      tenantId: 'acme-platform',
+      kind: 'application',
+      displayName: 'Slack',
+      owners: [],
+      sourceReferences: ['slack.com'],
+    },
+    recommendation: 'review_required',
+    reasons: ['missing_owner'],
+    evidence: [{ sourceReference: 'slack.com', observedAt: '2026-07-14T00:00:00.000Z' }],
+  },
+  {
+    policyId: 'non-human-identity.v1',
+    subject: {
+      id: 'sso:slack:1',
+      tenantId: 'acme-platform',
+      kind: 'non_human_identity',
+      displayName: 'Slack service account',
+      owners: [],
+      sourceReferences: ['sign-in/slack'],
+      identityType: 'service_account',
+    },
+    recommendation: 'review_required',
+    reasons: ['missing_owner', 'non_human_identity'],
+    evidence: [{ sourceReference: 'sign-in/slack', observedAt: '2026-07-14T08:00:00.000Z' }],
+  },
+];
+
 function matchesQuery(identity: IdentitySummary, query: string): boolean {
   const normalized = query.trim().toLowerCase();
   return (
@@ -344,6 +388,18 @@ export const demoApi: AegisApi = {
   },
   async listReviewCampaigns() {
     return sampleCampaigns;
+  },
+  async listReviewPolicies() {
+    return sampleReviewPolicies;
+  },
+  async createPolicyReviewCampaign(_tenantId, input) {
+    return {
+      id: `campaign:policy:${input.title.toLowerCase().replaceAll(' ', '-')}`,
+      title: input.title,
+      createdAt: new Date().toISOString(),
+      status: 'open',
+      tasks: [],
+    };
   },
   async recordCampaignDecision(_tenantId, campaignId) {
     const campaign = sampleCampaigns.find((candidate) => candidate.id === campaignId);
@@ -423,6 +479,17 @@ export function createHttpApi(baseUrl: string): AegisApi {
       requestJson<readonly ReviewCampaignSummary[]>(
         baseUrl,
         `/v1/tenants/${encodeURIComponent(tenantId)}/review-campaigns`,
+      ),
+    listReviewPolicies: (tenantId) =>
+      requestJson<readonly PolicyEvaluation[]>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/review-policies`,
+      ),
+    createPolicyReviewCampaign: (tenantId, input) =>
+      requestJson<ReviewCampaignSummary>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/policy-review-campaigns`,
+        { method: 'POST', body: JSON.stringify(input) },
       ),
     recordCampaignDecision: (tenantId, campaignId, taskId, input) =>
       requestJson<ReviewCampaignSummary>(

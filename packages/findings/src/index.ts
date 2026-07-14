@@ -13,6 +13,7 @@ export type GitHubFindingType =
   | 'STALE_ACCESS'
   | 'UNOWNED_REPOSITORY'
   | 'DIRECT_GRANT_DRIFT';
+export type FindingType = GitHubFindingType | 'PRIVILEGED_ACCESS' | 'POLICY_REVIEW';
 
 export interface FindingSourceFact {
   readonly kind: 'identity' | 'resource' | 'entitlement' | 'grant';
@@ -30,7 +31,7 @@ export interface FindingSubject {
 
 export interface Finding {
   readonly id: string;
-  readonly type: GitHubFindingType | 'PRIVILEGED_ACCESS';
+  readonly type: FindingType;
   readonly severity: Severity;
   readonly ruleId: string;
   readonly title: string;

@@ -10,7 +10,7 @@ import {
   PostgresSyncRunStore,
 } from '@open-saas-governance/postgres-store';
 import { ExtensionRegistry } from '@aegis/extension-registry';
-import { GraphReviewCampaignManager } from './review-campaigns.js';
+import { GraphReviewCampaignManager, PolicyReviewCampaignManager } from './review-campaigns.js';
 import { StoredCampaignEvidenceReader } from './evidence.js';
 import { VerifiedExtensionRegistryManager } from './extensions.js';
 import { createApp } from './app.js';
@@ -55,12 +55,14 @@ export async function createRuntime(
       new PostgresDiscoveryRepository(pool),
     );
     const campaigns = new GraphReviewCampaignManager(graph, reviewRepository, audit);
+    const reviewPolicies = new DiscoveryReviewPolicyManager(discovery);
     const app = createApp(graph, {
       campaigns,
       campaignEvidence: new StoredCampaignEvidenceReader(reviewRepository, audit),
       extensions: new VerifiedExtensionRegistryManager(new ExtensionRegistry(extensionRepository)),
       discovery,
-      reviewPolicies: new DiscoveryReviewPolicyManager(discovery),
+      reviewPolicies,
+      policyCampaigns: new PolicyReviewCampaignManager(reviewPolicies, reviewRepository, audit),
       syncRuns: new PostgresSyncRunStore(pool),
     });
     return {

@@ -2,17 +2,13 @@ import { evaluateReviewPolicy, type PolicyEvaluation } from '@aegis/review-polic
 import type { DiscoveryManager } from './discovery.js';
 
 export class DiscoveryReviewPolicyManager {
-  constructor(
-    private readonly discovery: DiscoveryManager,
-    private readonly now: () => Date = () => new Date(),
-  ) {}
+  constructor(private readonly discovery: DiscoveryManager) {}
 
   async list(tenantId: string): Promise<readonly PolicyEvaluation[]> {
     const [applications, queue] = await Promise.all([
       this.discovery.listCatalog(tenantId),
       this.discovery.listQueue(tenantId),
     ]);
-    const observedAt = this.now().toISOString();
     return [
       ...applications.map((application) =>
         evaluateReviewPolicy(
@@ -23,9 +19,13 @@ export class DiscoveryReviewPolicyManager {
             kind: 'application',
             displayName: application.vendorName,
             owners: application.owners.map((owner) => owner.identityId),
-            sourceReferences: application.domains,
+            sourceReferences: applicationEvidenceReferences(application),
+            sourceEvidence: applicationEvidenceReferences(application).map((sourceReference) => ({
+              sourceReference,
+              observedAt: application.updatedAt,
+            })),
           },
-          observedAt,
+          application.updatedAt,
         ),
       ),
       ...queue
@@ -42,14 +42,29 @@ export class DiscoveryReviewPolicyManager {
               displayName: item.observation.vendorName,
               owners: item.application?.owners.map((owner) => owner.identityId) ?? [],
               sourceReferences: [item.observation.sourceReference],
+              sourceEvidence: [
+                {
+                  sourceReference: item.observation.sourceReference,
+                  observedAt: item.observation.observedAt,
+                },
+              ],
               identityType: item.observation.identityType as Exclude<
                 typeof item.observation.identityType,
                 'human'
               >,
             },
-            observedAt,
+            item.observation.observedAt,
           ),
         ),
     ];
   }
+}
+
+function applicationEvidenceReferences(application: {
+  readonly id: string;
+  readonly domains: readonly string[];
+  readonly aliases: readonly string[];
+}): readonly string[] {
+  const references = [...application.domains, ...application.aliases];
+  return references.length ? references : [`catalog:${application.id}`];
 }

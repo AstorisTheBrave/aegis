@@ -14,6 +14,10 @@ const discoveryMigration = await readFile(
   new URL('../migrations/0005_saas_discovery.sql', import.meta.url),
   'utf8',
 );
+const policyReviewMigration = await readFile(
+  new URL('../migrations/0006_policy_review_context.sql', import.meta.url),
+  'utf8',
+);
 
 describe('0001 access graph migration', () => {
   it('keeps every graph table tenant-scoped and referentially sound', () => {
@@ -51,5 +55,12 @@ describe('0005 SaaS discovery migration', () => {
     );
     expect(discoveryMigration).toContain("CHECK (source IN ('idp', 'finance'");
     expect(discoveryMigration).toContain('CHECK (activity_count >= 0)');
+  });
+});
+
+describe('0006 policy review context migration', () => {
+  it('adds a nullable, indexable policy payload without changing access review tasks', () => {
+    expect(policyReviewMigration).toContain('ADD COLUMN policy JSONB');
+    expect(policyReviewMigration).toContain('governance_review_tasks_policy_idx');
   });
 });
