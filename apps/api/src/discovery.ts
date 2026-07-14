@@ -1,5 +1,6 @@
 import {
   reconcileDiscovery,
+  reconcileDiscoveryAgainstApplications,
   validateDiscoveryObservation,
   type DiscoveryObservation,
   type DiscoveryQueueItem,
@@ -50,9 +51,10 @@ export class CatalogDiscoveryManager implements DiscoveryManager {
   }
 
   async listQueue(tenantId: string): Promise<readonly DiscoveryQueueItem[]> {
+    const applications = await this.catalog.list(tenantId);
     return Promise.all(
       (await this.observations.list(tenantId)).map((observation) =>
-        reconcileDiscovery(observation, this.catalog),
+        reconcileDiscoveryAgainstApplications(observation, applications),
       ),
     );
   }

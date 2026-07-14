@@ -63,21 +63,25 @@ export function validateCatalogApplication(application: CatalogApplication): voi
   }
 }
 
+export function normalizeCatalogApplication(application: CatalogApplication): CatalogApplication {
+  validateCatalogApplication(application);
+  return {
+    ...application,
+    normalizedName: normalizeCatalogValue(application.normalizedName || application.vendorName),
+    domains: [...new Set(application.domains.map(normalizeCatalogValue))].sort(),
+    aliases: [...new Set(application.aliases.map(normalizeCatalogValue))].sort(),
+    owners: [...application.owners].sort((left, right) =>
+      `${left.role}:${left.identityId}`.localeCompare(`${right.role}:${right.identityId}`),
+    ),
+    approvedAlternatives: [...new Set(application.approvedAlternatives)].sort(),
+  };
+}
+
 export class InMemorySaasCatalogRepository implements SaasCatalogRepository {
   readonly #applications = new Map<string, CatalogApplication>();
 
   async upsert(application: CatalogApplication): Promise<CatalogApplication> {
-    validateCatalogApplication(application);
-    const normalized: CatalogApplication = {
-      ...application,
-      normalizedName: normalizeCatalogValue(application.normalizedName || application.vendorName),
-      domains: [...new Set(application.domains.map(normalizeCatalogValue))].sort(),
-      aliases: [...new Set(application.aliases.map(normalizeCatalogValue))].sort(),
-      owners: [...application.owners].sort((left, right) =>
-        `${left.role}:${left.identityId}`.localeCompare(`${right.role}:${right.identityId}`),
-      ),
-      approvedAlternatives: [...new Set(application.approvedAlternatives)].sort(),
-    };
+    const normalized = normalizeCatalogApplication(application);
     this.#applications.set(`${normalized.tenantId}:${normalized.id}`, normalized);
     return normalized;
   }

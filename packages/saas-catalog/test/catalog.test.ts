@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { InMemorySaasCatalogRepository } from '../src/index.js';
+import { InMemorySaasCatalogRepository, normalizeCatalogApplication } from '../src/index.js';
 
 describe('SaaS catalog', () => {
   it('normalizes vendor evidence and keeps owner assignments deterministic', async () => {
@@ -49,5 +49,30 @@ describe('SaaS catalog', () => {
         updatedAt: '2026-07-14T00:00:00.000Z',
       }),
     ).rejects.toThrow('domain or alias');
+  });
+
+  it('shares normalization across storage adapters', () => {
+    expect(
+      normalizeCatalogApplication({
+        tenantId: 'acme',
+        id: 'slack',
+        vendorName: 'Slack',
+        normalizedName: 'Slack',
+        domains: ['https://www.slack.com', 'slack.com'],
+        aliases: ['Slack Technologies', 'slack technologies'],
+        category: 'Collaboration',
+        riskTier: 'high',
+        dataClassification: 'confidential',
+        recommendation: 'monitor',
+        owners: [],
+        approvedAlternatives: [],
+        createdAt: '2026-07-14T00:00:00.000Z',
+        updatedAt: '2026-07-14T00:00:00.000Z',
+      }),
+    ).toMatchObject({
+      normalizedName: 'slack',
+      domains: ['slack.com'],
+      aliases: ['slack technologies'],
+    });
   });
 });
