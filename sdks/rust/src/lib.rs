@@ -33,7 +33,10 @@ mod tests {
 
     #[test]
     fn validates_manifest_and_redacts_fixture() {
-        let manifest = Manifest { protocol_version: PROTOCOL_VERSION, id: "example-connector", capabilities: &["IDENTITY_READ"], minimum_scopes: &["users.read"] };
+        let fixture = include_str!("../../fixtures/connector-v1-manifest.json");
+        assert!(fixture.contains("\"protocolVersion\": \"1.0.0\""));
+        assert!(fixture.contains("\"ACCESS_GRAPH_READ\""));
+        let manifest = Manifest { protocol_version: PROTOCOL_VERSION, id: "example-connector", capabilities: &["IDENTITY_READ", "ACCESS_GRAPH_READ"], minimum_scopes: &["users.read"] };
         assert!(validate_read_only_manifest(&manifest).is_ok());
         assert_eq!(redact_fixture("Bearer secret"), "REDACTED");
     }

@@ -26,8 +26,9 @@ Thanks for helping make SaaS access governance transparent and portable.
    certification without a provider test tenant.
 4. Canonically digest and sign the extension with an Ed25519 maintainer key.
    The self-hosted API verifies both before installation at `POST /v1/extensions`.
-5. Include the signed artifact, compatibility details, maintainer contact, and
-   a focused no-write test in the pull request.
+5. Include the signed artifact, supported protocol/platform range, immutable
+   source revision, reproducible build digest, passing test timestamp, lifecycle
+   state, maintainer contact, and a focused no-write test in the pull request.
 
 Policy packs must use stable rule IDs, state their required graph facts, and
 include deterministic fixtures. A policy evaluation must not make a network

@@ -13,6 +13,13 @@ export interface ExtensionCatalogItem {
   readonly maintainer: { readonly name: string; readonly contact: string };
   readonly certificationStatus?: 'fixture_certified' | 'live_certified';
   readonly scopeReviewStatus?: 'self_attested' | 'maintainer_reviewed';
+  readonly permissions: readonly string[];
+  readonly lifecycle: SignedExtensionArtifact['payload']['governance']['lifecycle'];
+  readonly compatibility: {
+    readonly protocolVersions: readonly string[];
+    readonly platform: SignedExtensionArtifact['payload']['governance']['platform'];
+  };
+  readonly provenance: SignedExtensionArtifact['payload']['governance']['provenance'];
 }
 
 export interface ExtensionRegistryManager {
@@ -49,6 +56,16 @@ function toCatalogItem(artifact: SignedExtensionArtifact): ExtensionCatalogItem 
     kind: artifact.payload.kind,
     publishedAt: artifact.payload.publishedAt,
     maintainer: artifact.payload.maintainer,
+    permissions:
+      artifact.payload.kind === 'connector'
+        ? (artifact.payload.content as ConnectorContribution).manifest.minimumScopes
+        : [],
+    lifecycle: artifact.payload.governance.lifecycle,
+    compatibility: {
+      protocolVersions: artifact.payload.governance.protocolVersions,
+      platform: artifact.payload.governance.platform,
+    },
+    provenance: artifact.payload.governance.provenance,
     ...(certification ? { certificationStatus: certification } : {}),
     ...(scopeReview ? { scopeReviewStatus: scopeReview } : {}),
   };

@@ -18,6 +18,17 @@ function artifact(overrides: Partial<ExtensionArtifactPayload> = {}): SignedExte
     publishedAt: '2026-07-14T00:00:00.000Z',
     maintainer: { name: 'Aegis Community', contact: 'security@example.test' },
     protocolVersion: CONNECTOR_PROTOCOL_VERSION,
+    governance: {
+      protocolVersions: [CONNECTOR_PROTOCOL_VERSION],
+      platform: { minimum: '0.1.0', maximum: '0.1.0' },
+      provenance: {
+        sourceRevision: 'git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        buildDigest: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        testedAt: '2026-07-14T00:00:00.000Z',
+        testStatus: 'passed',
+      },
+      lifecycle: { status: 'active' },
+    },
     content: {
       manifest: {
         protocolVersion: CONNECTOR_PROTOCOL_VERSION,
@@ -76,5 +87,16 @@ describe('ExtensionRegistry', () => {
     const connector = writable.payload.content as { manifest: { capabilities: string[] } };
     connector.manifest.capabilities.push('ACTION_WRITE');
     await expect(registry.install(writable)).rejects.toThrow('digest');
+  });
+
+  it('rejects signed artifacts that cannot run on the current platform', async () => {
+    const registry = new ExtensionRegistry(new InMemoryExtensionRegistryRepository());
+    await expect(
+      registry.install(
+        artifact({
+          governance: { ...artifact().payload.governance, platform: { minimum: '0.2.0' } },
+        }),
+      ),
+    ).rejects.toThrow('compatible');
   });
 });

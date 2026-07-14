@@ -1,5 +1,5 @@
 {
-  "name": "@aegis/extension-registry",
+  "name": "@aegis/migration-kit",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -13,11 +13,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@aegis/ecosystem-governance": "workspace:*",
-    "@open-saas-governance/connector-protocol": "workspace:*"
+    "@open-saas-governance/access-graph": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "24.1.0",
+    "typescript": "7.0.2",
     "vitest": "4.1.10"
   }
 }

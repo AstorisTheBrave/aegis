@@ -1,5 +1,9 @@
 import { createHash, sign, verify, type KeyObject } from 'node:crypto';
 import {
+  assertArtifactGovernance,
+  type ArtifactGovernanceMetadata,
+} from '@aegis/ecosystem-governance';
+import {
   CONNECTOR_PROTOCOL_VERSION,
   parseManifest,
   type ConnectorManifest,
@@ -48,6 +52,7 @@ export interface ExtensionArtifactPayload {
   readonly publishedAt: string;
   readonly maintainer: { readonly name: string; readonly contact: string };
   readonly protocolVersion: typeof CONNECTOR_PROTOCOL_VERSION;
+  readonly governance: ArtifactGovernanceMetadata;
   readonly content: ConnectorContribution | PolicyPackContribution;
 }
 
@@ -82,6 +87,7 @@ export class ExtensionRegistry {
 
   async install(artifact: SignedExtensionArtifact): Promise<void> {
     verifyArtifact(artifact);
+    assertArtifactGovernance(artifact.payload.governance, artifact.payload.protocolVersion);
     if (artifact.payload.kind === 'connector') assertReadOnlyConnectorArtifact(artifact);
     await this.repository.install(artifact);
   }
