@@ -12,6 +12,7 @@ const migrations = [
   '0008_controlled_actions.sql',
   '0009_provider_certification.sql',
   '0010_access_requests.sql',
+  '0011_assistance.sql',
 ] as const;
 
 export async function runMigrations(pool: Pool): Promise<void> {
@@ -91,6 +92,13 @@ export async function runMigrations(pool: Pool): Promise<void> {
        VALUES ('0010_access_requests.sql') ON CONFLICT (name) DO NOTHING`,
     );
   }
+  const assistanceTable = await pool.query<{ exists: boolean }>(
+    `SELECT to_regclass('public.governance_assistance_settings') IS NOT NULL AS exists`,
+  );
+  if (assistanceTable.rows[0]?.exists)
+    await pool.query(
+      `INSERT INTO governance_schema_migrations (name) VALUES ('0011_assistance.sql') ON CONFLICT (name) DO NOTHING`,
+    );
   for (const migration of migrations) {
     const applied = await pool.query<{ name: string }>(
       'SELECT name FROM governance_schema_migrations WHERE name = $1',

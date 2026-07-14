@@ -12,6 +12,7 @@ import { PolicyQueue } from './features/reviews/PolicyQueue.js';
 import { WorkflowLibrary } from './features/workflows/WorkflowLibrary.js';
 import { ActionQueue } from './features/actions/ActionQueue.js';
 import { AccessRequestQueue } from './features/requests/AccessRequestQueue.js';
+import { AssistancePanel } from './features/assistance/AssistancePanel.js';
 import {
   aegisApi,
   type FindingDetail,
@@ -25,6 +26,8 @@ import {
   type ControlledAction,
   type TestTenantActivationSummary,
   type AccessRequest,
+  type AssistanceOutput,
+  type AssistanceSettings,
 } from './lib/api.js';
 import './styles.css';
 
@@ -57,6 +60,9 @@ export function AegisConsole() {
   );
   const [accessRequests, setAccessRequests] = useState<readonly AccessRequest[]>([]);
   const [accessRequestsLoading, setAccessRequestsLoading] = useState(true);
+  const [assistanceSettings, setAssistanceSettings] = useState<AssistanceSettings>();
+  const [assistanceOutput, setAssistanceOutput] = useState<AssistanceOutput>();
+  const [assistanceLoading, setAssistanceLoading] = useState(true);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setQuery(search), 200);
@@ -100,6 +106,45 @@ export function AegisConsole() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    void aegisApi.getAssistanceSettings(tenantId).then((next) => {
+      if (!active) return;
+      setAssistanceSettings(next);
+      setAssistanceLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function enableAssistance() {
+    const settings = await aegisApi.updateAssistanceSettings(tenantId, {
+      enabled: true,
+      allowedProviders: ['aegis-deterministic-local.v1'],
+      budgetPerRequest: 400,
+      actor: 'Aegis Admin',
+    });
+    setAssistanceSettings(settings);
+  }
+
+  async function generateAssistance() {
+    const output = await aegisApi.generateAssistance(tenantId, {
+      kind: 'evidence_summary',
+      providerId: 'aegis-deterministic-local.v1',
+      actor: 'Aegis Admin',
+      promptVersion: 'console-evidence-summary.v1',
+      sourceFacts: [
+        {
+          id: 'console:access-inventory',
+          label: 'Current access inventory',
+          observedAt: new Date().toISOString(),
+        },
+      ],
+    });
+    setAssistanceOutput(output);
+  }
 
   async function requestGithubAccess() {
     const created = await aegisApi.createAccessRequest(tenantId, {
@@ -430,6 +475,16 @@ export function AegisConsole() {
             }
             onRequest={requestGithubAccess}
             requests={accessRequests}
+          />
+        </div>
+      ) : activeNavigation === 'Assistant' ? (
+        <div className="inventory-page discovery-page">
+          <AssistancePanel
+            loading={assistanceLoading}
+            onEnable={enableAssistance}
+            onGenerate={generateAssistance}
+            output={assistanceOutput}
+            settings={assistanceSettings}
           />
         </div>
       ) : (

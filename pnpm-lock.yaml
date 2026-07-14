@@ -28,6 +28,9 @@ importers:
       '@aegis/api-contract':
         specifier: workspace:*
         version: link:../../packages/api-contract
+      '@aegis/assistance':
+        specifier: workspace:*
+        version: link:../../packages/assistance
       '@aegis/discovery':
         specifier: workspace:*
         version: link:../../packages/discovery
@@ -200,6 +203,9 @@ importers:
       '@aegis/action-contract':
         specifier: workspace:*
         version: link:../action-contract
+      '@aegis/assistance':
+        specifier: workspace:*
+        version: link:../assistance
       '@aegis/discovery':
         specifier: workspace:*
         version: link:../discovery
@@ -212,6 +218,15 @@ importers:
       '@aegis/workflow-contract':
         specifier: workspace:*
         version: link:../workflow-contract
+    devDependencies:
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
+  packages/assistance:
     devDependencies:
       typescript:
         specifier: 7.0.2
@@ -359,6 +374,9 @@ importers:
       '@aegis/action-engine':
         specifier: workspace:*
         version: link:../action-engine
+      '@aegis/assistance':
+        specifier: workspace:*
+        version: link:../assistance
       '@aegis/discovery':
         specifier: workspace:*
         version: link:../discovery

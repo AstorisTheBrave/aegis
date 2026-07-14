@@ -7,6 +7,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@aegis/assistance": "workspace:*",
     "@aegis/access-requests": "workspace:*",
     "@aegis/action-contract": "workspace:*",
     "@aegis/discovery": "workspace:*",

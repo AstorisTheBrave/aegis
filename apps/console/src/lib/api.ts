@@ -18,6 +18,10 @@ import type {
   TestTenantActivationSummary,
   AccessRequest,
   CreateAccessRequestInput,
+  AssistanceOutput,
+  AssistanceRequest,
+  AssistanceSettings,
+  UpdateAssistanceSettingsInput,
 } from '@aegis/api-contract';
 
 export type {
@@ -42,6 +46,10 @@ export type {
   TestTenantActivationSummary,
   AccessRequest,
   CreateAccessRequestInput,
+  AssistanceOutput,
+  AssistanceRequest,
+  AssistanceSettings,
+  UpdateAssistanceSettingsInput,
 } from '@aegis/api-contract';
 
 export interface AegisApi {
@@ -107,6 +115,12 @@ export interface AegisApi {
     input: { reviewer: string; approved: boolean; reason: string },
   ): Promise<AccessRequest>;
   activateAccessRequest(tenantId: string, requestId: string): Promise<AccessRequest>;
+  getAssistanceSettings(tenantId: string): Promise<AssistanceSettings>;
+  updateAssistanceSettings(
+    tenantId: string,
+    input: UpdateAssistanceSettingsInput,
+  ): Promise<AssistanceSettings>;
+  generateAssistance(tenantId: string, input: AssistanceRequest): Promise<AssistanceOutput>;
 }
 
 let sampleActions: readonly ControlledAction[] = [
@@ -165,6 +179,16 @@ let sampleAccessRequests: readonly AccessRequest[] = [
     simulatedFulfillment: { requiresControlledAction: true, providerMutation: false },
   },
 ];
+
+let sampleAssistanceSettings: AssistanceSettings = {
+  schemaVersion: 'assistance.v1',
+  tenantId: 'acme-platform',
+  enabled: false,
+  allowedProviders: ['aegis-deterministic-local.v1'],
+  budgetPerRequest: 400,
+  updatedAt: '2026-07-14T20:00:00.000Z',
+  updatedBy: 'system',
+};
 
 const sampleCatalog: readonly CatalogApplication[] = [
   {
@@ -754,6 +778,42 @@ export const demoApi: AegisApi = {
     );
     return updated;
   },
+  async getAssistanceSettings(tenantId) {
+    return { ...sampleAssistanceSettings, tenantId };
+  },
+  async updateAssistanceSettings(tenantId, input) {
+    sampleAssistanceSettings = {
+      schemaVersion: 'assistance.v1',
+      tenantId,
+      enabled: input.enabled,
+      allowedProviders: input.allowedProviders,
+      budgetPerRequest: input.budgetPerRequest,
+      updatedAt: new Date().toISOString(),
+      updatedBy: input.actor,
+    };
+    return sampleAssistanceSettings;
+  },
+  async generateAssistance(tenantId, input) {
+    if (!sampleAssistanceSettings.enabled)
+      throw new Error('Assistance is disabled for this tenant.');
+    const sourceFacts = input.sourceFacts;
+    const narrative = `Evidence summary based on ${sourceFacts.map((source) => source.label).join(', ')}. Review the linked facts before taking any action.`;
+    return {
+      schemaVersion: 'assistance.v1',
+      id: `assistance:demo:${crypto.randomUUID()}`,
+      tenantId,
+      kind: input.kind,
+      providerId: input.providerId,
+      promptVersion: input.promptVersion,
+      createdAt: new Date().toISOString(),
+      sourceFacts,
+      narrative,
+      redactionCount: 0,
+      budgetUsed: Math.ceil(narrative.length / 4),
+      providerMutation: false,
+      enforcement: 'not_authorized',
+    };
+  },
   async recordCampaignDecision(_tenantId, campaignId) {
     const campaign = sampleCampaigns.find((candidate) => candidate.id === campaignId);
     if (!campaign) throw new Error('The requested review campaign was not found.');
@@ -940,6 +1000,23 @@ export function createHttpApi(baseUrl: string): AegisApi {
         baseUrl,
         `/v1/tenants/${encodeURIComponent(tenantId)}/access-requests/${encodeURIComponent(requestId)}/activate`,
         { method: 'POST' },
+      ),
+    getAssistanceSettings: (tenantId) =>
+      requestJson<AssistanceSettings>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/assistance/settings`,
+      ),
+    updateAssistanceSettings: (tenantId, input) =>
+      requestJson<AssistanceSettings>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/assistance/settings`,
+        { method: 'POST', body: JSON.stringify(input) },
+      ),
+    generateAssistance: (tenantId, input) =>
+      requestJson<AssistanceOutput>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/assistance`,
+        { method: 'POST', body: JSON.stringify(input) },
       ),
   };
 }

@@ -32,6 +32,8 @@ import type { ProviderCertificationManager, ProviderCertificationInput } from '.
 import type { AccessRequestManager } from './access-requests.js';
 import type { CreateAccessRequestInput } from '@aegis/access-requests';
 import type { CreateTestTenantActivationInput } from '@aegis/provider-certification';
+import type { AssistanceManager } from './assistance.js';
+import type { AssistanceRequest, UpdateAssistanceSettingsInput } from '@aegis/assistance';
 
 export type { FindingReader } from './findings.js';
 export type { CampaignEvidenceReader } from './evidence.js';
@@ -66,6 +68,7 @@ export interface ApiServices {
   readonly actions?: ActionManager;
   readonly certifications?: ProviderCertificationManager;
   readonly accessRequests?: AccessRequestManager;
+  readonly assistance?: AssistanceManager;
 }
 
 function isStringArray(value: unknown): value is readonly string[] {
@@ -321,6 +324,40 @@ function isAccessDecisionInput(
     typeof x.reason === 'string'
   );
 }
+function isAssistanceSettingsInput(value: unknown): value is UpdateAssistanceSettingsInput {
+  if (!value || typeof value !== 'object') return false;
+  const x = value as Record<string, unknown>;
+  return (
+    typeof x.enabled === 'boolean' &&
+    isStringArray(x.allowedProviders) &&
+    typeof x.budgetPerRequest === 'number' &&
+    typeof x.actor === 'string' &&
+    !('credentials' in x) &&
+    !('providerUrl' in x)
+  );
+}
+function isAssistanceRequest(value: unknown): value is AssistanceRequest {
+  if (!value || typeof value !== 'object') return false;
+  const x = value as Record<string, unknown>;
+  return (
+    ['evidence_summary', 'recommendation_draft', 'workflow_draft'].includes(String(x.kind)) &&
+    typeof x.providerId === 'string' &&
+    typeof x.actor === 'string' &&
+    typeof x.promptVersion === 'string' &&
+    Array.isArray(x.sourceFacts) &&
+    x.sourceFacts.every(
+      (fact) =>
+        !!fact &&
+        typeof fact === 'object' &&
+        typeof (fact as Record<string, unknown>).id === 'string' &&
+        typeof (fact as Record<string, unknown>).label === 'string' &&
+        typeof (fact as Record<string, unknown>).observedAt === 'string',
+    ) &&
+    (!('instruction' in x) || typeof x.instruction === 'string') &&
+    !('credentials' in x) &&
+    !('providerUrl' in x)
+  );
+}
 
 function isCampaignDecisionInput(value: unknown): value is RecordCampaignDecisionInput {
   if (!value || typeof value !== 'object') return false;
@@ -387,6 +424,43 @@ export function createApp(graph: AccessGraphRepository, services: ApiServices = 
   const findings = services.findings ?? new GraphFindingReader(graph);
   app.get('/health', async () => ({ status: 'ok' }));
   app.get('/ready', async () => ({ status: 'ready' }));
+  app.get<{ Params: { tenantId: string } }>(
+    '/v1/tenants/:tenantId/assistance/settings',
+    async (request, reply) => {
+      if (!services.assistance) return reply.code(501).send({ error: 'assistance_not_configured' });
+      return services.assistance.settings(request.params.tenantId);
+    },
+  );
+  app.post<{ Params: { tenantId: string }; Body: unknown }>(
+    '/v1/tenants/:tenantId/assistance/settings',
+    async (request, reply) => {
+      if (!isAssistanceSettingsInput(request.body))
+        return reply.code(400).send({ error: 'invalid_assistance_settings' });
+      if (!services.assistance) return reply.code(501).send({ error: 'assistance_not_configured' });
+      try {
+        return await services.assistance.updateSettings(request.params.tenantId, request.body);
+      } catch (cause) {
+        return reply
+          .code(400)
+          .send({ error: cause instanceof Error ? cause.message : 'assistance_settings_failed' });
+      }
+    },
+  );
+  app.post<{ Params: { tenantId: string }; Body: unknown }>(
+    '/v1/tenants/:tenantId/assistance',
+    async (request, reply) => {
+      if (!isAssistanceRequest(request.body))
+        return reply.code(400).send({ error: 'invalid_assistance_request' });
+      if (!services.assistance) return reply.code(501).send({ error: 'assistance_not_configured' });
+      try {
+        return await services.assistance.assist(request.params.tenantId, request.body);
+      } catch (cause) {
+        return reply
+          .code(400)
+          .send({ error: cause instanceof Error ? cause.message : 'assistance_failed' });
+      }
+    },
+  );
   app.get<{ Params: { tenantId: string } }>(
     '/v1/tenants/:tenantId/access-requests',
     async (request, reply) => {

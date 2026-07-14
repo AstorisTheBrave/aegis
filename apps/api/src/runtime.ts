@@ -12,6 +12,7 @@ import {
   PostgresWorkflowRepository,
   PostgresProviderCertificationRepository,
   PostgresAccessRequestRepository,
+  PostgresAssistanceSettingsRepository,
 } from '@open-saas-governance/postgres-store';
 import { ExtensionRegistry } from '@aegis/extension-registry';
 import { GraphReviewCampaignManager, PolicyReviewCampaignManager } from './review-campaigns.js';
@@ -24,6 +25,7 @@ import { WorkflowManager } from './workflows.js';
 import { ActionManager } from './actions.js';
 import { ProviderCertificationManager } from './certifications.js';
 import { AccessRequestManager } from './access-requests.js';
+import { AssistanceManager } from './assistance.js';
 import { runMigrations } from './migrations.js';
 
 export interface RuntimeConfig {
@@ -84,6 +86,7 @@ export async function createRuntime(
       ),
       certifications,
       accessRequests: new AccessRequestManager(new PostgresAccessRequestRepository(pool), audit),
+      assistance: new AssistanceManager(new PostgresAssistanceSettingsRepository(pool), audit),
       syncRuns: new PostgresSyncRunStore(pool),
     });
     return {
