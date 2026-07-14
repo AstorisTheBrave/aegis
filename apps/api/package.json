@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --target=node24 --packages=bundle --external:fastify --external:pg --outfile=dist/server.js",
     "dev": "node dist/server.js",
     "lint": "prettier --check . --ignore-path ../../.prettierignore",
     "test": "vitest run",
@@ -13,11 +13,18 @@
   "dependencies": {
     "@aegis/api-contract": "workspace:*",
     "@aegis/findings": "workspace:*",
+    "@aegis/ingestion": "workspace:*",
+    "@aegis/reviews": "workspace:*",
+    "@open-saas-governance/postgres-store": "workspace:*",
     "@open-saas-governance/access-graph": "workspace:*",
-    "fastify": "5.10.0"
+    "@open-saas-governance/audit-ledger": "workspace:*",
+    "fastify": "5.10.0",
+    "pg": "8.22.0"
   },
   "devDependencies": {
+    "esbuild": "0.28.1",
     "@types/node": "24.1.0",
+    "@types/pg": "8.20.0",
     "vitest": "4.1.10"
   }
 }
