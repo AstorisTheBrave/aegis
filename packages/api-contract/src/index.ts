@@ -35,6 +35,17 @@ export interface FindingDetail {
   readonly evidence: readonly FindingEvidence[];
 }
 
+export interface FindingListItem {
+  readonly id: string;
+  readonly type: string;
+  readonly severity: 'low' | 'medium' | 'high';
+  readonly title: string;
+  readonly identity: string;
+  readonly resource: string;
+  readonly lastSeen: string;
+  readonly status: 'open' | 'resolved';
+}
+
 export type ReviewDecision = 'approved' | 'needs_information' | 'revocation_requested';
 
 export interface ReviewDecisionInput {

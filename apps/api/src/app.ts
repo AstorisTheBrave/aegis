@@ -1,7 +1,6 @@
 import Fastify from 'fastify';
 import type {
   EvidenceBundle,
-  FindingDetail,
   IdentitySummary,
   RecordedReviewDecision,
   ReviewDecisionInput,
@@ -11,10 +10,9 @@ import type {
   Identity,
   JsonValue,
 } from '@open-saas-governance/access-graph';
+import { GraphFindingReader, type FindingReader } from './findings.js';
 
-export interface FindingReader {
-  get(tenantId: string, findingId: string): Promise<FindingDetail | undefined>;
-}
+export type { FindingReader } from './findings.js';
 
 export interface ReviewDecisionRecorder {
   record(
@@ -81,6 +79,7 @@ function isReviewDecisionInput(value: unknown): value is ReviewDecisionInput {
 
 export function createApp(graph: AccessGraphRepository, services: ApiServices = {}) {
   const app = Fastify({ logger: true });
+  const findings = services.findings ?? new GraphFindingReader(graph);
   app.get('/health', async () => ({ status: 'ok' }));
   app.get<{ Params: { tenantId: string }; Querystring: { query?: string } }>(
     '/v1/tenants/:tenantId/identities',
@@ -115,13 +114,12 @@ export function createApp(graph: AccessGraphRepository, services: ApiServices = 
   app.get<{ Params: { tenantId: string; findingId: string } }>(
     '/v1/tenants/:tenantId/findings/:findingId',
     async (request, reply) => {
-      if (!services.findings) return reply.code(501).send({ error: 'findings_not_configured' });
-      const finding = await services.findings.get(
-        request.params.tenantId,
-        request.params.findingId,
-      );
+      const finding = await findings.get(request.params.tenantId, request.params.findingId);
       return finding ?? reply.code(404).send({ error: 'finding_not_found' });
     },
+  );
+  app.get<{ Params: { tenantId: string } }>('/v1/tenants/:tenantId/findings', async (request) =>
+    findings.list(request.params.tenantId),
   );
   app.post<{
     Params: { tenantId: string; itemId: string };
