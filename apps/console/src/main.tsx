@@ -9,6 +9,7 @@ import { CatalogTable } from './features/catalog/CatalogTable.js';
 import { CampaignList } from './features/reviews/CampaignList.js';
 import { DecisionControls } from './features/reviews/DecisionControls.js';
 import { PolicyQueue } from './features/reviews/PolicyQueue.js';
+import { WorkflowLibrary } from './features/workflows/WorkflowLibrary.js';
 import {
   aegisApi,
   type FindingDetail,
@@ -17,6 +18,8 @@ import {
   type IdentitySummary,
   type ReviewCampaignSummary,
   type PolicyEvaluation,
+  type WorkflowDefinition,
+  type WorkflowExecution,
 } from './lib/api.js';
 import './styles.css';
 
@@ -40,6 +43,9 @@ export function AegisConsole() {
   const [discoveryLoading, setDiscoveryLoading] = useState(true);
   const [policyEvaluations, setPolicyEvaluations] = useState<readonly PolicyEvaluation[]>([]);
   const [policyLoading, setPolicyLoading] = useState(true);
+  const [workflowTemplates, setWorkflowTemplates] = useState<readonly WorkflowDefinition[]>([]);
+  const [workflowLoading, setWorkflowLoading] = useState(true);
+  const [workflowExecution, setWorkflowExecution] = useState<WorkflowExecution>();
 
   useEffect(() => {
     const timer = window.setTimeout(() => setQuery(search), 200);
@@ -83,6 +89,34 @@ export function AegisConsole() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    void aegisApi.listWorkflowTemplates().then((next) => {
+      if (!active) return;
+      setWorkflowTemplates(next);
+      setWorkflowLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function runWorkflow(templateId: string) {
+    const execution = await aegisApi.dryRunWorkflow(tenantId, {
+      templateId,
+      actor: 'Aegis Admin',
+      sourceFacts: [
+        {
+          id: 'console:workflow-preview',
+          kind: 'operator_input',
+          label: 'Console preview request',
+          observedAt: new Date().toISOString(),
+        },
+      ],
+    });
+    setWorkflowExecution(execution);
+  }
 
   useEffect(() => {
     let active = true;
@@ -215,6 +249,15 @@ export function AegisConsole() {
             evaluations={policyEvaluations}
             loading={policyLoading}
             onRunReview={runPolicyReview}
+          />
+        </div>
+      ) : activeNavigation === 'Workflows' ? (
+        <div className="inventory-page discovery-page">
+          <WorkflowLibrary
+            templates={workflowTemplates}
+            execution={workflowExecution}
+            loading={workflowLoading}
+            onRun={runWorkflow}
           />
         </div>
       ) : (

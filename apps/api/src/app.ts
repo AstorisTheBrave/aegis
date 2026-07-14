@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import type {
   AssignCatalogOwnersInput,
   CreatePolicyReviewCampaignInput,
+  DryRunWorkflowInput,
   CreateCatalogApplicationInput,
   CreateReviewCampaignInput,
   EvidenceBundle,
@@ -23,6 +24,7 @@ import type { PolicyReviewCampaignManager, ReviewCampaignManager } from './revie
 import type { ExtensionRegistryManager } from './extensions.js';
 import type { DiscoveryManager } from './discovery.js';
 import type { DiscoveryReviewPolicyManager } from './review-policies.js';
+import type { WorkflowManager } from './workflows.js';
 
 export type { FindingReader } from './findings.js';
 export type { CampaignEvidenceReader } from './evidence.js';
@@ -53,6 +55,7 @@ export interface ApiServices {
   readonly discovery?: DiscoveryManager;
   readonly reviewPolicies?: DiscoveryReviewPolicyManager;
   readonly policyCampaigns?: PolicyReviewCampaignManager;
+  readonly workflows?: WorkflowManager;
 }
 
 function isStringArray(value: unknown): value is readonly string[] {
@@ -155,6 +158,26 @@ function isCreatePolicyCampaignInput(value: unknown): value is CreatePolicyRevie
   );
 }
 
+function isDryRunWorkflowInput(value: unknown): value is DryRunWorkflowInput {
+  if (!value || typeof value !== 'object') return false;
+  const input = value as Record<string, unknown>;
+  return (
+    typeof input.templateId === 'string' &&
+    typeof input.actor === 'string' &&
+    Array.isArray(input.sourceFacts) &&
+    input.sourceFacts.every(
+      (fact) =>
+        !!fact &&
+        typeof fact === 'object' &&
+        typeof (fact as Record<string, unknown>).id === 'string' &&
+        typeof (fact as Record<string, unknown>).kind === 'string' &&
+        typeof (fact as Record<string, unknown>).label === 'string' &&
+        typeof (fact as Record<string, unknown>).observedAt === 'string',
+    ) &&
+    (!('simulateFailureStepIds' in input) || isStringArray(input.simulateFailureStepIds))
+  );
+}
+
 function isCampaignDecisionInput(value: unknown): value is RecordCampaignDecisionInput {
   if (!value || typeof value !== 'object') return false;
   const input = value as Record<string, unknown>;
@@ -220,6 +243,33 @@ export function createApp(graph: AccessGraphRepository, services: ApiServices = 
   const findings = services.findings ?? new GraphFindingReader(graph);
   app.get('/health', async () => ({ status: 'ok' }));
   app.get('/ready', async () => ({ status: 'ready' }));
+  app.get('/v1/workflow-templates', async (_request, reply) => {
+    if (!services.workflows) return reply.code(501).send({ error: 'workflows_not_configured' });
+    return services.workflows.listTemplates();
+  });
+  app.get<{ Params: { tenantId: string } }>(
+    '/v1/tenants/:tenantId/workflow-executions',
+    async (request, reply) => {
+      if (!services.workflows) return reply.code(501).send({ error: 'workflows_not_configured' });
+      return services.workflows.listExecutions(request.params.tenantId);
+    },
+  );
+  app.post<{ Params: { tenantId: string }; Body: unknown }>(
+    '/v1/tenants/:tenantId/workflows/dry-run',
+    async (request, reply) => {
+      if (!isDryRunWorkflowInput(request.body)) {
+        return reply.code(400).send({ error: 'invalid_dry_run_workflow' });
+      }
+      if (!services.workflows) return reply.code(501).send({ error: 'workflows_not_configured' });
+      try {
+        return await services.workflows.dryRun(request.params.tenantId, request.body);
+      } catch (cause) {
+        return reply.code(400).send({
+          error: cause instanceof Error ? cause.message : 'workflow_dry_run_failed',
+        });
+      }
+    },
+  );
   app.get<{ Params: { tenantId: string } }>(
     '/v1/tenants/:tenantId/review-policies',
     async (request, reply) => {

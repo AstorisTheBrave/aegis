@@ -18,6 +18,10 @@ const policyReviewMigration = await readFile(
   new URL('../migrations/0006_policy_review_context.sql', import.meta.url),
   'utf8',
 );
+const workflowMigration = await readFile(
+  new URL('../migrations/0007_workflows.sql', import.meta.url),
+  'utf8',
+);
 
 describe('0001 access graph migration', () => {
   it('keeps every graph table tenant-scoped and referentially sound', () => {
@@ -62,5 +66,13 @@ describe('0006 policy review context migration', () => {
   it('adds a nullable, indexable policy payload without changing access review tasks', () => {
     expect(policyReviewMigration).toContain('ADD COLUMN policy JSONB');
     expect(policyReviewMigration).toContain('governance_review_tasks_policy_idx');
+  });
+});
+
+describe('0007 workflow migration', () => {
+  it('keeps definitions and dry-run executions tenant-scoped', () => {
+    expect(workflowMigration).toContain('CREATE TABLE governance_workflow_definitions');
+    expect(workflowMigration).toContain('CREATE TABLE governance_workflow_executions');
+    expect(workflowMigration).toContain('PRIMARY KEY (tenant_id, id)');
   });
 });

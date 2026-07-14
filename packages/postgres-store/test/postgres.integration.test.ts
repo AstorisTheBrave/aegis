@@ -4,6 +4,7 @@ import { type GraphSyncBatch, type Identity } from '@open-saas-governance/access
 import { verifyAuditChain } from '@open-saas-governance/audit-ledger';
 import type { Finding } from '@aegis/findings';
 import { ReviewCampaignService } from '@aegis/reviews';
+import type { WorkflowDefinition, WorkflowExecution } from '@aegis/workflow-contract';
 import type { SignedExtensionArtifact } from '@aegis/extension-registry';
 import type { CatalogApplication } from '@aegis/saas-catalog';
 import { Pool } from 'pg';
@@ -17,6 +18,7 @@ import {
   PostgresSaasCatalogRepository,
   PostgresSyncRunStore,
   PostgresDiscoveryRepository,
+  PostgresWorkflowRepository,
 } from '../src/index.js';
 
 const databaseUrl = process.env.GOVERNANCE_TEST_DATABASE_URL;
@@ -39,9 +41,12 @@ describeDatabase('PostgreSQL storage adapters', () => {
     '../migrations/0006_policy_review_context.sql',
     import.meta.url,
   );
+  const workflowMigrationUrl = new URL('../migrations/0007_workflows.sql', import.meta.url);
 
   beforeAll(async () => {
     await pool.query(`DROP TABLE IF EXISTS
+      governance_workflow_executions,
+      governance_workflow_definitions,
       governance_review_task_decisions,
       governance_review_tasks,
       governance_review_campaigns,
@@ -61,6 +66,7 @@ describeDatabase('PostgreSQL storage adapters', () => {
     await pool.query(await readFile(extensionMigrationUrl, 'utf8'));
     await pool.query(await readFile(discoveryMigrationUrl, 'utf8'));
     await pool.query(await readFile(policyReviewMigrationUrl, 'utf8'));
+    await pool.query(await readFile(workflowMigrationUrl, 'utf8'));
   });
 
   afterAll(async () => {
@@ -196,6 +202,13 @@ describeDatabase('PostgreSQL storage adapters', () => {
     await expect(discovery.list('tenant-acme')).resolves.toMatchObject([
       { id: 'idp:slack:1', source: 'idp', identityType: 'service_account' },
     ]);
+
+    const workflows = new PostgresWorkflowRepository(pool);
+    await workflows.upsertDefinition('tenant-acme', sampleWorkflowDefinition());
+    await workflows.recordExecution(sampleWorkflowExecution());
+    await expect(workflows.listExecutions('tenant-acme')).resolves.toMatchObject([
+      { definitionId: 'leaver.v1', providerMutation: false },
+    ]);
   });
 });
 
@@ -213,6 +226,41 @@ function sampleFinding(): Finding {
       resourceId: 'resource-platform',
       grantId: 'grant-alice-maintain',
     },
+  };
+}
+
+function sampleWorkflowDefinition(): WorkflowDefinition {
+  return {
+    schemaVersion: 'workflow.v1',
+    id: 'leaver.v1',
+    version: '1.0.0',
+    title: 'Leaver',
+    trigger: 'hris',
+    steps: [{ id: 'approval', kind: 'approval', title: 'Owner approval', approverRole: 'owner' }],
+  };
+}
+
+function sampleWorkflowExecution(): WorkflowExecution {
+  return {
+    id: 'dry-run:tenant-acme:leaver.v1:1',
+    tenantId: 'tenant-acme',
+    definitionId: 'leaver.v1',
+    definitionVersion: '1.0.0',
+    createdAt: '2026-07-14T10:09:00.000Z',
+    actor: 'admin@example.com',
+    status: 'requires_approval',
+    sourceFacts: [],
+    preview: [
+      {
+        stepId: 'approval',
+        kind: 'approval',
+        title: 'Owner approval',
+        status: 'pending_approval',
+        requiredScopes: [],
+        providerMutation: false,
+      },
+    ],
+    providerMutation: false,
   };
 }
 

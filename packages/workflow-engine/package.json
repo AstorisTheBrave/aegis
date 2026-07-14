@@ -1,24 +1,24 @@
 {
-  "name": "@aegis/api-contract",
+  "name": "@aegis/workflow-engine",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
-  "dependencies": {
-    "@aegis/discovery": "workspace:*",
-    "@aegis/saas-catalog": "workspace:*",
-    "@aegis/review-policies": "workspace:*",
-    "@aegis/workflow-contract": "workspace:*"
-  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "prettier --check . --ignore-path ../../.prettierignore",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
+  "dependencies": {
+    "@aegis/workflow-contract": "workspace:*",
+    "@open-saas-governance/audit-ledger": "workspace:*"
+  },
   "devDependencies": {
+    "@aegis/workflow-templates": "workspace:*",
+    "@types/node": "24.1.0",
     "typescript": "7.0.2",
     "vitest": "4.1.10"
   }

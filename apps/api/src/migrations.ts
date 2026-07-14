@@ -7,6 +7,8 @@ const migrations = [
   '0003_sync_runs.sql',
   '0004_extension_registry.sql',
   '0005_saas_discovery.sql',
+  '0006_policy_review_context.sql',
+  '0007_workflows.sql',
 ] as const;
 
 export async function runMigrations(pool: Pool): Promise<void> {
@@ -35,6 +37,29 @@ export async function runMigrations(pool: Pool): Promise<void> {
         [migration],
       );
     }
+  }
+  const policyColumn = await pool.query<{ exists: boolean }>(
+    `SELECT EXISTS (
+      SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public'
+         AND table_name = 'governance_review_tasks'
+         AND column_name = 'policy'
+    ) AS exists`,
+  );
+  if (policyColumn.rows[0]?.exists) {
+    await pool.query(
+      `INSERT INTO governance_schema_migrations (name)
+       VALUES ('0006_policy_review_context.sql') ON CONFLICT (name) DO NOTHING`,
+    );
+  }
+  const workflowTable = await pool.query<{ exists: boolean }>(
+    `SELECT to_regclass('public.governance_workflow_definitions') IS NOT NULL AS exists`,
+  );
+  if (workflowTable.rows[0]?.exists) {
+    await pool.query(
+      `INSERT INTO governance_schema_migrations (name)
+       VALUES ('0007_workflows.sql') ON CONFLICT (name) DO NOTHING`,
+    );
   }
   for (const migration of migrations) {
     const applied = await pool.query<{ name: string }>(

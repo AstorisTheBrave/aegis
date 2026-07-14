@@ -20,6 +20,8 @@
     "@aegis/reviews": "workspace:*",
     "@aegis/review-policies": "workspace:*",
     "@aegis/saas-catalog": "workspace:*",
+    "@aegis/workflow-engine": "workspace:*",
+    "@aegis/workflow-templates": "workspace:*",
     "@open-saas-governance/postgres-store": "workspace:*",
     "@open-saas-governance/access-graph": "workspace:*",
     "@open-saas-governance/audit-ledger": "workspace:*",
