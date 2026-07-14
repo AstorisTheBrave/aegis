@@ -180,6 +180,12 @@ importers:
 
   packages/postgres-store:
     dependencies:
+      '@aegis/findings':
+        specifier: workspace:*
+        version: link:../findings
+      '@aegis/reviews':
+        specifier: workspace:*
+        version: link:../reviews
       '@open-saas-governance/access-graph':
         specifier: workspace:*
         version: link:../access-graph
