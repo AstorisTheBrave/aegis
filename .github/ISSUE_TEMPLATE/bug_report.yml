@@ -1,0 +1,48 @@
+name: Bug report
+description: Report a reproducible problem in Aegis.
+title: 'bug: '
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to help improve Aegis. Do not include credentials, tokens, private customer data, or vulnerability details in this form.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Explain the observed behavior and its impact.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Give the smallest safe sequence of steps, configuration, or fixture needed to reproduce the problem.
+      placeholder: |
+        1. Start ...
+        2. Configure ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include Aegis version or commit, operating system, runtime versions, and connector or policy pack version where relevant.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed credentials, tokens, personal data, and any security-sensitive details from this report.
+          required: true
