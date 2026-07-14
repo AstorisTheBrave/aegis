@@ -4,12 +4,14 @@ import { type GraphSyncBatch, type Identity } from '@open-saas-governance/access
 import { verifyAuditChain } from '@open-saas-governance/audit-ledger';
 import type { Finding } from '@aegis/findings';
 import { ReviewCampaignService } from '@aegis/reviews';
+import type { SignedExtensionArtifact } from '@aegis/extension-registry';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
   PostgresAccessGraphRepository,
   PostgresAuditLedger,
+  PostgresExtensionRegistryRepository,
   PostgresReviewCampaignRepository,
   PostgresSyncRunStore,
 } from '../src/index.js';
@@ -25,6 +27,10 @@ describeDatabase('PostgreSQL storage adapters', () => {
   const migrationUrl = new URL('../migrations/0001_access_graph.sql', import.meta.url);
   const reviewMigrationUrl = new URL('../migrations/0002_review_campaigns.sql', import.meta.url);
   const syncMigrationUrl = new URL('../migrations/0003_sync_runs.sql', import.meta.url);
+  const extensionMigrationUrl = new URL(
+    '../migrations/0004_extension_registry.sql',
+    import.meta.url,
+  );
 
   beforeAll(async () => {
     await pool.query(`DROP TABLE IF EXISTS
@@ -32,6 +38,7 @@ describeDatabase('PostgreSQL storage adapters', () => {
       governance_review_tasks,
       governance_review_campaigns,
       governance_sync_runs,
+      governance_extensions,
       governance_grants,
       governance_entitlements,
       governance_resources,
@@ -41,6 +48,7 @@ describeDatabase('PostgreSQL storage adapters', () => {
     await pool.query(await readFile(migrationUrl, 'utf8'));
     await pool.query(await readFile(reviewMigrationUrl, 'utf8'));
     await pool.query(await readFile(syncMigrationUrl, 'utf8'));
+    await pool.query(await readFile(extensionMigrationUrl, 'utf8'));
   });
 
   afterAll(async () => {
@@ -120,6 +128,12 @@ describeDatabase('PostgreSQL storage adapters', () => {
     await expect(syncRuns.list('tenant-acme')).resolves.toMatchObject([
       { status: 'completed', eventCount: 4 },
     ]);
+
+    const extensions = new PostgresExtensionRegistryRepository(pool);
+    await extensions.install(sampleExtension());
+    await expect(extensions.list()).resolves.toMatchObject([
+      { payload: { id: 'acme-policy-pack', kind: 'policy-pack', version: '1.0.0' } },
+    ]);
   });
 });
 
@@ -137,6 +151,33 @@ function sampleFinding(): Finding {
       resourceId: 'resource-platform',
       grantId: 'grant-alice-maintain',
     },
+  };
+}
+
+function sampleExtension(): SignedExtensionArtifact {
+  return {
+    payload: {
+      id: 'acme-policy-pack',
+      version: '1.0.0',
+      kind: 'policy-pack',
+      publishedAt: '2026-07-14T10:06:00.000Z',
+      maintainer: { name: 'Aegis Community', contact: 'security@example.test' },
+      protocolVersion: '1.0.0',
+      content: {
+        controls: ['SOC 2 CC6.2'],
+        rules: [
+          {
+            id: 'acme.policy.v1',
+            title: 'Acme policy',
+            severity: 'medium',
+            requiredSourceFacts: ['identity'],
+          },
+        ],
+      },
+    },
+    digest: 'sha256:fixture',
+    publicKey: 'fixture-key',
+    signature: 'fixture-signature',
   };
 }
 

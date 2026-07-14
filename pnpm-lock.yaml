@@ -25,6 +25,9 @@ importers:
       '@aegis/evidence-export':
         specifier: workspace:*
         version: link:../../packages/evidence-export
+      '@aegis/extension-registry':
+        specifier: workspace:*
+        version: link:../../packages/extension-registry
       '@aegis/findings':
         specifier: workspace:*
         version: link:../../packages/findings
@@ -116,6 +119,12 @@ importers:
         specifier: 4.1.10
         version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
 
+  connectors/official-catalog:
+    devDependencies:
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
   packages/access-graph:
     devDependencies:
       vitest:
@@ -153,6 +162,22 @@ importers:
         specifier: 4.1.10
         version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
 
+  packages/connector-test-kit:
+    dependencies:
+      '@aegis/extension-registry':
+        specifier: workspace:*
+        version: link:../extension-registry
+      '@open-saas-governance/connector-protocol':
+        specifier: workspace:*
+        version: link:../connector-protocol
+    devDependencies:
+      '@types/node':
+        specifier: 24.1.0
+        version: 24.1.0
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
   packages/credential-host:
     devDependencies:
       '@types/node':
@@ -170,6 +195,19 @@ importers:
       '@open-saas-governance/audit-ledger':
         specifier: workspace:*
         version: link:../audit-ledger
+    devDependencies:
+      '@types/node':
+        specifier: 24.1.0
+        version: 24.1.0
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
+  packages/extension-registry:
+    dependencies:
+      '@open-saas-governance/connector-protocol':
+        specifier: workspace:*
+        version: link:../connector-protocol
     devDependencies:
       '@types/node':
         specifier: 24.1.0
@@ -204,8 +242,24 @@ importers:
         specifier: 4.1.10
         version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
 
+  packages/policy-packs:
+    dependencies:
+      '@aegis/extension-registry':
+        specifier: workspace:*
+        version: link:../extension-registry
+    devDependencies:
+      '@types/node':
+        specifier: 24.1.0
+        version: 24.1.0
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
   packages/postgres-store:
     dependencies:
+      '@aegis/extension-registry':
+        specifier: workspace:*
+        version: link:../extension-registry
       '@aegis/findings':
         specifier: workspace:*
         version: link:../findings

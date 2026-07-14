@@ -103,3 +103,21 @@ and must prove that no route or token can mutate a provider.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the review requirements and public
 templates for submitting a connector or policy pack.
+
+## Phase 2 extension ecosystem
+
+Extensions are portable, signed artifacts. A connector contribution supplies a
+v1 manifest, redacted fixture bundle, declared scopes/endpoints, a named scope
+review, and a read-only certification report; a policy-pack contribution
+supplies versioned, source-linked rule descriptors. The API verifies the artifact's canonical
+SHA-256 digest and Ed25519 signature before it stores anything.
+
+The maintained provider catalog currently identifies Google Workspace, Slack,
+Microsoft Entra ID, GitLab, Okta, AWS IAM, Atlassian Cloud, and Notion as
+read-only implementation targets. Those entries are intentionally marked as
+profiles until a concrete connector is certified against a provider test tenant.
+They are not claims of a live production integration.
+
+Use `pnpm test:sdks` to validate the protocol-only TypeScript, Go, Python, and
+Rust SDK seeds. They contain no provider mutation capability and no dependency
+on the Aegis control plane.
