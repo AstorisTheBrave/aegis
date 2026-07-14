@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@aegis/api-contract": "workspace:*",
+    "@aegis/findings": "workspace:*",
     "@open-saas-governance/access-graph": "workspace:*",
     "fastify": "5.10.0"
   },

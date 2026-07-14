@@ -33,6 +33,20 @@ async function createGraph() {
 
 const services: ApiServices = {
   findings: {
+    async list() {
+      return [
+        {
+          id: 'PRV-2025-00073',
+          type: 'PRIVILEGED_ACCESS',
+          severity: 'high' as const,
+          title: 'Privileged access requires review',
+          identity: 'Alice Example',
+          resource: 'acme/platform',
+          lastSeen: '1h ago',
+          status: 'open' as const,
+        },
+      ];
+    },
     async get(_tenantId, findingId) {
       return findingId === 'PRV-2025-00073'
         ? {
@@ -83,6 +97,9 @@ describe('Aegis API', () => {
       severity: 'high',
       evidence: [{ kind: 'RoleBinding' }],
     });
+    expect((await app.inject('/v1/tenants/acme/findings')).json()).toMatchObject([
+      { type: 'PRIVILEGED_ACCESS', severity: 'high' },
+    ]);
     const decision = await app.inject({
       method: 'POST',
       url: '/v1/tenants/acme/reviews/review:PRV-2025-00073/decisions',
@@ -100,9 +117,10 @@ describe('Aegis API', () => {
     await app.close();
   });
 
-  it('does not silently enable unconfigured governance services', async () => {
+  it('derives an empty finding list but does not enable unconfigured review services', async () => {
     const app = createApp(await createGraph());
-    expect((await app.inject('/v1/tenants/acme/findings/PRV-2025-00073')).statusCode).toBe(501);
+    expect((await app.inject('/v1/tenants/acme/findings/PRV-2025-00073')).statusCode).toBe(404);
+    expect((await app.inject('/v1/tenants/acme/findings')).json()).toEqual([]);
     expect(
       (
         await app.inject({
