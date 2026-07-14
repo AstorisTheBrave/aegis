@@ -210,6 +210,9 @@ export class PostgresAccessGraphRepository implements AccessGraphRepository {
         connectorId: row.identity_connector_id,
         externalId: row.identity_external_id,
         displayName: row.identity_display_name,
+        ...(typeof row.identity_attributes.identityType === 'string'
+          ? { identityType: row.identity_attributes.identityType as Identity['identityType'] }
+          : {}),
         ...(row.identity_email ? { email: row.identity_email } : {}),
         status: row.identity_status,
         observedAt: row.identity_observed_at.toISOString(),
@@ -260,6 +263,7 @@ export class PostgresAccessGraphRepository implements AccessGraphRepository {
 }
 
 function toIdentity(row: IdentityRow): Identity {
+  const identityType = row.attributes.identityType;
   return {
     kind: 'identity',
     tenantId: row.tenantId,
@@ -267,6 +271,9 @@ function toIdentity(row: IdentityRow): Identity {
     connectorId: row.connectorId,
     externalId: row.externalId,
     displayName: row.displayName,
+    ...(typeof identityType === 'string'
+      ? { identityType: identityType as Identity['identityType'] }
+      : {}),
     ...(row.email ? { email: row.email } : {}),
     status: row.status,
     observedAt: row.observed_at.toISOString(),
@@ -275,6 +282,10 @@ function toIdentity(row: IdentityRow): Identity {
 }
 
 async function upsertIdentity(client: PoolClient, identity: Identity): Promise<void> {
+  const attributes = {
+    ...identity.attributes,
+    ...(identity.identityType ? { identityType: identity.identityType } : {}),
+  };
   await client.query(
     `INSERT INTO governance_identities
       (tenant_id, id, connector_id, external_id, display_name, email, status, observed_at, attributes)
@@ -296,7 +307,7 @@ async function upsertIdentity(client: PoolClient, identity: Identity): Promise<v
       identity.email ?? null,
       identity.status,
       identity.observedAt,
-      identity.attributes,
+      attributes,
     ],
   );
 }

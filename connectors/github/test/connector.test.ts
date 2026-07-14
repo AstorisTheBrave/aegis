@@ -9,7 +9,7 @@ describe('GitHubConnector', () => {
       const headers = new Headers();
       let data: unknown[] = [];
       if (url.includes('/members?role=admin')) {
-        data = [{ id: 2, login: 'bob', type: 'User' }];
+        data = [{ id: 2, login: 'bob', type: 'Bot' }];
       } else if (url.includes('/outside_collaborators')) {
         data = [{ id: 3, login: 'carol', type: 'User' }];
       } else if (url.includes('/teams?')) {
@@ -65,6 +65,12 @@ describe('GitHubConnector', () => {
           id: 'github:user:3',
           attributes: expect.objectContaining({ outsideCollaborator: true }),
         }),
+      }),
+    );
+    expect(batch.events).toContainEqual(
+      expect.objectContaining({
+        type: 'identity.upsert',
+        entity: expect.objectContaining({ id: 'github:user:2', identityType: 'bot' }),
       }),
     );
     expect(batch.events).toContainEqual(

@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { InMemoryAccessGraphRepository } from '@open-saas-governance/access-graph';
+import { InMemoryDiscoveryRepository } from '@aegis/discovery';
+import { InMemorySaasCatalogRepository } from '@aegis/saas-catalog';
 import type { ApiServices } from '../src/app.js';
 import { createApp } from '../src/app.js';
+import { CatalogDiscoveryManager } from '../src/discovery.js';
 
 async function createGraph() {
   const graph = new InMemoryAccessGraphRepository();
@@ -32,6 +35,10 @@ async function createGraph() {
 }
 
 const services: ApiServices = {
+  discovery: new CatalogDiscoveryManager(
+    new InMemorySaasCatalogRepository(),
+    new InMemoryDiscoveryRepository(),
+  ),
   extensions: {
     async list() {
       return [
@@ -270,6 +277,84 @@ describe('Aegis API', () => {
         })
       ).statusCode,
     ).toBe(501);
+    await app.close();
+  });
+
+  it('records provider-neutral discovery observations and reconciles catalog ownership', async () => {
+    const app = createApp(await createGraph(), services);
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/tenants/acme/apps',
+      payload: {
+        id: 'slack',
+        vendorName: 'Slack',
+        domains: ['slack.com'],
+        aliases: [],
+        category: 'collaboration',
+        riskTier: 'high',
+        dataClassification: 'confidential',
+        recommendation: 'monitor',
+      },
+    });
+    expect(created.statusCode).toBe(200);
+
+    const observed = await app.inject({
+      method: 'POST',
+      url: '/v1/tenants/acme/discovery-observations',
+      payload: {
+        id: 'sso:slack:1',
+        source: 'sso_log',
+        sourceReference: 'signin/slack',
+        vendorName: 'Slack',
+        domain: 'https://www.slack.com',
+        observedAt: '2026-07-14T10:00:00.000Z',
+        activityCount: 0,
+        identityType: 'service_account',
+        metadata: { eventKind: 'signin' },
+      },
+    });
+    expect(observed.statusCode).toBe(200);
+    expect(observed.json()).toMatchObject({
+      application: { id: 'slack' },
+      reasons: ['missing_owner', 'high_risk', 'unused_license', 'non_human_access'],
+    });
+    expect((await app.inject('/v1/tenants/acme/discovery-queue')).json()).toMatchObject([
+      { application: { id: 'slack' }, usage: { source: 'sso_log' } },
+    ]);
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: '/v1/tenants/acme/apps/slack/owners',
+          payload: {
+            owners: [
+              {
+                identityId: 'alice',
+                role: 'business',
+                assignedAt: '2026-07-14T10:01:00.000Z',
+              },
+            ],
+          },
+        })
+      ).json(),
+    ).toMatchObject({ owners: [{ identityId: 'alice', role: 'business' }] });
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: '/v1/tenants/acme/discovery-observations',
+          payload: {
+            id: 'unsafe',
+            source: 'idp',
+            sourceReference: 'application/unsafe',
+            vendorName: 'Unsafe',
+            observedAt: '2026-07-14T10:00:00.000Z',
+            activityCount: 1,
+            metadata: { accessToken: 'not-permitted' },
+          },
+        })
+      ).statusCode,
+    ).toBe(400);
     await app.close();
   });
 });

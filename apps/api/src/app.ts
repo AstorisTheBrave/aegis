@@ -1,8 +1,11 @@
 import Fastify from 'fastify';
 import type {
+  AssignCatalogOwnersInput,
+  CreateCatalogApplicationInput,
   CreateReviewCampaignInput,
   EvidenceBundle,
   IdentitySummary,
+  RecordDiscoveryObservationInput,
   RecordCampaignDecisionInput,
   RecordedReviewDecision,
   ReviewDecisionInput,
@@ -17,11 +20,13 @@ import { GraphFindingReader, type FindingReader } from './findings.js';
 import type { CampaignEvidenceReader } from './evidence.js';
 import type { ReviewCampaignManager } from './review-campaigns.js';
 import type { ExtensionRegistryManager } from './extensions.js';
+import type { DiscoveryManager } from './discovery.js';
 
 export type { FindingReader } from './findings.js';
 export type { CampaignEvidenceReader } from './evidence.js';
 export type { ReviewCampaignManager } from './review-campaigns.js';
 export type { ExtensionRegistryManager } from './extensions.js';
+export type { DiscoveryManager } from './discovery.js';
 
 export interface ReviewDecisionRecorder {
   record(
@@ -43,6 +48,80 @@ export interface ApiServices {
   readonly reviews?: ReviewDecisionRecorder;
   readonly evidence?: EvidenceExporter;
   readonly extensions?: ExtensionRegistryManager;
+  readonly discovery?: DiscoveryManager;
+}
+
+function isStringArray(value: unknown): value is readonly string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
+
+function isOwner(value: unknown): boolean {
+  if (!value || typeof value !== 'object') return false;
+  const owner = value as Record<string, unknown>;
+  return (
+    typeof owner.identityId === 'string' &&
+    (owner.role === 'business' || owner.role === 'technical') &&
+    typeof owner.assignedAt === 'string'
+  );
+}
+
+function isCreateCatalogApplicationInput(value: unknown): value is CreateCatalogApplicationInput {
+  if (!value || typeof value !== 'object') return false;
+  const input = value as Record<string, unknown>;
+  return (
+    typeof input.id === 'string' &&
+    typeof input.vendorName === 'string' &&
+    isStringArray(input.domains) &&
+    isStringArray(input.aliases) &&
+    typeof input.category === 'string' &&
+    ['low', 'medium', 'high', 'critical'].includes(String(input.riskTier)) &&
+    ['public', 'internal', 'confidential', 'restricted'].includes(
+      String(input.dataClassification),
+    ) &&
+    ['allow', 'monitor', 'block_recommended'].includes(String(input.recommendation)) &&
+    (!('owners' in input) || (Array.isArray(input.owners) && input.owners.every(isOwner))) &&
+    (!('approvedAlternatives' in input) || isStringArray(input.approvedAlternatives))
+  );
+}
+
+function isAssignCatalogOwnersInput(value: unknown): value is AssignCatalogOwnersInput {
+  const owners =
+    value && typeof value === 'object' ? (value as Record<string, unknown>).owners : undefined;
+  return Array.isArray(owners) && owners.every(isOwner);
+}
+
+function isRecordDiscoveryObservationInput(
+  value: unknown,
+): value is RecordDiscoveryObservationInput {
+  if (!value || typeof value !== 'object') return false;
+  const input = value as Record<string, unknown>;
+  return (
+    typeof input.id === 'string' &&
+    [
+      'idp',
+      'finance',
+      'sso_log',
+      'browser_extension',
+      'endpoint_inventory',
+      'email_domain',
+      'api_token_inventory',
+    ].includes(String(input.source)) &&
+    typeof input.sourceReference === 'string' &&
+    typeof input.vendorName === 'string' &&
+    typeof input.observedAt === 'string' &&
+    typeof input.activityCount === 'number' &&
+    (!('domain' in input) || typeof input.domain === 'string') &&
+    (!('identityType' in input) ||
+      ['human', 'service_account', 'bot', 'oauth_application', 'api_key', 'integration'].includes(
+        String(input.identityType),
+      )) &&
+    (!('metadata' in input) ||
+      (!!input.metadata &&
+        typeof input.metadata === 'object' &&
+        Object.values(input.metadata).every((item) =>
+          ['string', 'number', 'boolean'].includes(typeof item),
+        )))
+  );
 }
 
 function isCreateCampaignInput(value: unknown): value is CreateReviewCampaignInput {
@@ -124,6 +203,96 @@ export function createApp(graph: AccessGraphRepository, services: ApiServices = 
   const findings = services.findings ?? new GraphFindingReader(graph);
   app.get('/health', async () => ({ status: 'ok' }));
   app.get('/ready', async () => ({ status: 'ready' }));
+  app.get<{ Params: { tenantId: string } }>(
+    '/v1/tenants/:tenantId/apps',
+    async (request, reply) => {
+      if (!services.discovery) return reply.code(501).send({ error: 'discovery_not_configured' });
+      return services.discovery.listCatalog(request.params.tenantId);
+    },
+  );
+  app.post<{ Params: { tenantId: string }; Body: unknown }>(
+    '/v1/tenants/:tenantId/apps',
+    async (request, reply) => {
+      if (!isCreateCatalogApplicationInput(request.body)) {
+        return reply.code(400).send({ error: 'invalid_catalog_application' });
+      }
+      if (!services.discovery) return reply.code(501).send({ error: 'discovery_not_configured' });
+      const timestamp = new Date().toISOString();
+      try {
+        return await services.discovery.createCatalog({
+          tenantId: request.params.tenantId,
+          id: request.body.id,
+          vendorName: request.body.vendorName,
+          normalizedName: request.body.normalizedName ?? request.body.vendorName,
+          domains: request.body.domains,
+          aliases: request.body.aliases,
+          category: request.body.category,
+          riskTier: request.body.riskTier,
+          dataClassification: request.body.dataClassification,
+          recommendation: request.body.recommendation,
+          owners: request.body.owners ?? [],
+          approvedAlternatives: request.body.approvedAlternatives ?? [],
+          renewalAt: request.body.renewalAt,
+          createdAt: request.body.createdAt ?? timestamp,
+          updatedAt: request.body.updatedAt ?? timestamp,
+        });
+      } catch (cause) {
+        return reply.code(400).send({
+          error: cause instanceof Error ? cause.message : 'catalog_application_failed',
+        });
+      }
+    },
+  );
+  app.post<{
+    Params: { tenantId: string; applicationId: string };
+    Body: unknown;
+  }>('/v1/tenants/:tenantId/apps/:applicationId/owners', async (request, reply) => {
+    if (!isAssignCatalogOwnersInput(request.body)) {
+      return reply.code(400).send({ error: 'invalid_catalog_owners' });
+    }
+    if (!services.discovery) return reply.code(501).send({ error: 'discovery_not_configured' });
+    const application = await services.discovery.assignOwners(
+      request.params.tenantId,
+      request.params.applicationId,
+      request.body.owners,
+      request.body.updatedAt ?? new Date().toISOString(),
+    );
+    return application ?? reply.code(404).send({ error: 'catalog_application_not_found' });
+  });
+  app.get<{ Params: { tenantId: string } }>(
+    '/v1/tenants/:tenantId/discovery-queue',
+    async (request, reply) => {
+      if (!services.discovery) return reply.code(501).send({ error: 'discovery_not_configured' });
+      return services.discovery.listQueue(request.params.tenantId);
+    },
+  );
+  app.post<{ Params: { tenantId: string }; Body: unknown }>(
+    '/v1/tenants/:tenantId/discovery-observations',
+    async (request, reply) => {
+      if (!isRecordDiscoveryObservationInput(request.body)) {
+        return reply.code(400).send({ error: 'invalid_discovery_observation' });
+      }
+      if (!services.discovery) return reply.code(501).send({ error: 'discovery_not_configured' });
+      try {
+        return await services.discovery.observe({
+          tenantId: request.params.tenantId,
+          id: request.body.id,
+          source: request.body.source,
+          sourceReference: request.body.sourceReference,
+          vendorName: request.body.vendorName,
+          domain: request.body.domain,
+          observedAt: request.body.observedAt,
+          activityCount: request.body.activityCount,
+          identityType: request.body.identityType,
+          metadata: request.body.metadata,
+        });
+      } catch (cause) {
+        return reply.code(400).send({
+          error: cause instanceof Error ? cause.message : 'discovery_observation_failed',
+        });
+      }
+    },
+  );
   app.get<{ Querystring: { kind?: 'connector' | 'policy-pack' } }>(
     '/v1/extensions',
     async (request, reply) => {

@@ -4,11 +4,15 @@ import { AppShell } from './app-shell/AppShell.js';
 import { ExportEvidenceButton } from './features/evidence/ExportEvidenceButton.js';
 import { FindingPanel } from './features/findings/FindingPanel.js';
 import { IdentityTable } from './features/inventory/IdentityTable.js';
+import { DiscoveryQueue } from './features/discovery/DiscoveryQueue.js';
+import { CatalogTable } from './features/catalog/CatalogTable.js';
 import { CampaignList } from './features/reviews/CampaignList.js';
 import { DecisionControls } from './features/reviews/DecisionControls.js';
 import {
   aegisApi,
   type FindingDetail,
+  type CatalogApplication,
+  type DiscoveryQueueItem,
   type IdentitySummary,
   type ReviewCampaignSummary,
 } from './lib/api.js';
@@ -28,6 +32,10 @@ export function AegisConsole() {
   const [loading, setLoading] = useState(true);
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
+  const [activeNavigation, setActiveNavigation] = useState('Inventory');
+  const [catalog, setCatalog] = useState<readonly CatalogApplication[]>([]);
+  const [discoveryQueue, setDiscoveryQueue] = useState<readonly DiscoveryQueueItem[]>([]);
+  const [discoveryLoading, setDiscoveryLoading] = useState(true);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setQuery(search), 200);
@@ -67,6 +75,33 @@ export function AegisConsole() {
       setCampaigns(next);
       setCampaignsLoading(false);
     });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function assignCatalogOwners(
+    applicationId: string,
+    owners: readonly CatalogApplication['owners'][number][],
+  ) {
+    const updated = await aegisApi.assignCatalogOwners(tenantId, applicationId, owners);
+    setCatalog((current) =>
+      current.map((application) => (application.id === applicationId ? updated : application)),
+    );
+    const nextQueue = await aegisApi.listDiscoveryQueue(tenantId);
+    setDiscoveryQueue(nextQueue);
+  }
+
+  useEffect(() => {
+    let active = true;
+    void Promise.all([aegisApi.listCatalog(tenantId), aegisApi.listDiscoveryQueue(tenantId)]).then(
+      ([nextCatalog, nextQueue]) => {
+        if (!active) return;
+        setCatalog(nextCatalog);
+        setDiscoveryQueue(nextQueue);
+        setDiscoveryLoading(false);
+      },
+    );
     return () => {
       active = false;
     };
@@ -117,47 +152,79 @@ export function AegisConsole() {
       onNavigationToggle={() => setNavigationOpen((open) => !open)}
       onSearchChange={setSearch}
       search={search}
+      activeNavigation={activeNavigation}
+      onNavigate={setActiveNavigation}
     >
-      <div className="inventory-page">
-        <div className="page-heading">
-          <div>
-            <p className="eyebrow">Identity inventory</p>
-            <h1>Identities</h1>
-            <p>Observed access across connected systems. Aegis does not change source access.</p>
+      {activeNavigation === 'Connectors' ? (
+        <div className="inventory-page discovery-page">
+          <div className="page-heading">
+            <div>
+              <p className="eyebrow">Discovery</p>
+              <h1>Observation queue</h1>
+              <p>Source-linked observations awaiting catalog and ownership review.</p>
+            </div>
+            <span className="identity-count">{discoveryQueue.length} observations</span>
           </div>
-          <span className="identity-count">{identities.length} people</span>
+          <DiscoveryQueue items={discoveryQueue} loading={discoveryLoading} />
         </div>
-        <div className="tabs" role="tablist" aria-label="Identity kinds">
-          <button aria-selected="true" role="tab" type="button">
-            People
-          </button>
-          <button aria-selected="false" role="tab" type="button">
-            Service accounts
-          </button>
-          <button aria-selected="false" role="tab" type="button">
-            Groups
-          </button>
+      ) : activeNavigation === 'Resources' ? (
+        <div className="inventory-page catalog-page">
+          <div className="page-heading">
+            <div>
+              <p className="eyebrow">Catalog</p>
+              <h1>Applications</h1>
+              <p>Business context, risk posture, owners, and approved alternatives.</p>
+            </div>
+            <span className="identity-count">{catalog.length} applications</span>
+          </div>
+          <CatalogTable
+            applications={catalog}
+            loading={discoveryLoading}
+            onAssignOwners={assignCatalogOwners}
+          />
         </div>
-        <div className="filters" aria-label="Identity filters">
-          <span className="filter-search">⌕ Search people...</span>
-          <button type="button">All sources⌄</button>
-          <button type="button">All platforms⌄</button>
-          <button type="button">Access: all⌄</button>
-          <button type="button">⌘ Filters</button>
+      ) : (
+        <div className="inventory-page">
+          <div className="page-heading">
+            <div>
+              <p className="eyebrow">Identity inventory</p>
+              <h1>Identities</h1>
+              <p>Observed access across connected systems. Aegis does not change source access.</p>
+            </div>
+            <span className="identity-count">{identities.length} people</span>
+          </div>
+          <div className="tabs" role="tablist" aria-label="Identity kinds">
+            <button aria-selected="true" role="tab" type="button">
+              People
+            </button>
+            <button aria-selected="false" role="tab" type="button">
+              Service accounts
+            </button>
+            <button aria-selected="false" role="tab" type="button">
+              Groups
+            </button>
+          </div>
+          <div className="filters" aria-label="Identity filters">
+            <span className="filter-search">⌕ Search people...</span>
+            <button type="button">All sources⌄</button>
+            <button type="button">All platforms⌄</button>
+            <button type="button">Access: all⌄</button>
+            <button type="button">⌘ Filters</button>
+          </div>
+          <IdentityTable
+            identities={identities}
+            loading={loading}
+            onSelect={(identity) => setSelectedIdentityId(identity.id)}
+            selectedIdentityId={selectedIdentity?.id}
+          />
+          <footer className="table-footer">
+            <span>Showing {identities.length} identities</span>
+            <span>
+              Rows per page: 25　‹　<strong>1</strong>　›
+            </span>
+          </footer>
         </div>
-        <IdentityTable
-          identities={identities}
-          loading={loading}
-          onSelect={(identity) => setSelectedIdentityId(identity.id)}
-          selectedIdentityId={selectedIdentity?.id}
-        />
-        <footer className="table-footer">
-          <span>Showing {identities.length} identities</span>
-          <span>
-            Rows per page: 25　‹　<strong>1</strong>　›
-          </span>
-        </footer>
-      </div>
+      )}
     </AppShell>
   );
 }

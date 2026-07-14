@@ -1,3 +1,8 @@
+import type { DiscoveryObservation, DiscoveryQueueItem } from '@aegis/discovery';
+import type { CatalogApplication, CatalogOwner } from '@aegis/saas-catalog';
+
+export type { CatalogApplication, CatalogOwner, DiscoveryObservation, DiscoveryQueueItem };
+
 export type AccessStatus = 'active' | 'requires_review' | 'suspended';
 
 export interface IdentitySummary {
@@ -126,4 +131,38 @@ export interface RecordCampaignDecisionInput {
   readonly rationale: string;
   readonly delegatedTo?: string;
   readonly exceptionExpiresAt?: string;
+}
+
+export interface CreateCatalogApplicationInput {
+  readonly id: string;
+  readonly vendorName: string;
+  readonly normalizedName?: string;
+  readonly domains: readonly string[];
+  readonly aliases: readonly string[];
+  readonly category: string;
+  readonly riskTier: CatalogApplication['riskTier'];
+  readonly dataClassification: CatalogApplication['dataClassification'];
+  readonly recommendation: CatalogApplication['recommendation'];
+  readonly owners?: readonly CatalogOwner[];
+  readonly approvedAlternatives?: readonly string[];
+  readonly renewalAt?: string;
+  readonly createdAt?: string;
+  readonly updatedAt?: string;
+}
+
+export interface AssignCatalogOwnersInput {
+  readonly owners: readonly CatalogOwner[];
+  readonly updatedAt?: string;
+}
+
+export interface RecordDiscoveryObservationInput {
+  readonly id: string;
+  readonly source: DiscoveryObservation['source'];
+  readonly sourceReference: string;
+  readonly vendorName: string;
+  readonly domain?: string;
+  readonly observedAt: string;
+  readonly activityCount: number;
+  readonly identityType?: DiscoveryObservation['identityType'];
+  readonly metadata?: DiscoveryObservation['metadata'];
 }

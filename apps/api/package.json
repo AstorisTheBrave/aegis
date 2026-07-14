@@ -12,11 +12,13 @@
   },
   "dependencies": {
     "@aegis/api-contract": "workspace:*",
+    "@aegis/discovery": "workspace:*",
     "@aegis/evidence-export": "workspace:*",
     "@aegis/extension-registry": "workspace:*",
     "@aegis/findings": "workspace:*",
     "@aegis/ingestion": "workspace:*",
     "@aegis/reviews": "workspace:*",
+    "@aegis/saas-catalog": "workspace:*",
     "@open-saas-governance/postgres-store": "workspace:*",
     "@open-saas-governance/access-graph": "workspace:*",
     "@open-saas-governance/audit-ledger": "workspace:*",

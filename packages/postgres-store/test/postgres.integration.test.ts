@@ -5,6 +5,7 @@ import { verifyAuditChain } from '@open-saas-governance/audit-ledger';
 import type { Finding } from '@aegis/findings';
 import { ReviewCampaignService } from '@aegis/reviews';
 import type { SignedExtensionArtifact } from '@aegis/extension-registry';
+import type { CatalogApplication } from '@aegis/saas-catalog';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -13,7 +14,9 @@ import {
   PostgresAuditLedger,
   PostgresExtensionRegistryRepository,
   PostgresReviewCampaignRepository,
+  PostgresSaasCatalogRepository,
   PostgresSyncRunStore,
+  PostgresDiscoveryRepository,
 } from '../src/index.js';
 
 const databaseUrl = process.env.GOVERNANCE_TEST_DATABASE_URL;
@@ -31,6 +34,7 @@ describeDatabase('PostgreSQL storage adapters', () => {
     '../migrations/0004_extension_registry.sql',
     import.meta.url,
   );
+  const discoveryMigrationUrl = new URL('../migrations/0005_saas_discovery.sql', import.meta.url);
 
   beforeAll(async () => {
     await pool.query(`DROP TABLE IF EXISTS
@@ -39,6 +43,8 @@ describeDatabase('PostgreSQL storage adapters', () => {
       governance_review_campaigns,
       governance_sync_runs,
       governance_extensions,
+      governance_discovery_observations,
+      governance_saas_catalog_applications,
       governance_grants,
       governance_entitlements,
       governance_resources,
@@ -49,6 +55,7 @@ describeDatabase('PostgreSQL storage adapters', () => {
     await pool.query(await readFile(reviewMigrationUrl, 'utf8'));
     await pool.query(await readFile(syncMigrationUrl, 'utf8'));
     await pool.query(await readFile(extensionMigrationUrl, 'utf8'));
+    await pool.query(await readFile(discoveryMigrationUrl, 'utf8'));
   });
 
   afterAll(async () => {
@@ -134,6 +141,30 @@ describeDatabase('PostgreSQL storage adapters', () => {
     await expect(extensions.list()).resolves.toMatchObject([
       { payload: { id: 'acme-policy-pack', kind: 'policy-pack', version: '1.0.0' } },
     ]);
+
+    const catalog = new PostgresSaasCatalogRepository(pool);
+    await catalog.upsert(sampleCatalogApplication());
+    await expect(
+      catalog.assignOwners('tenant-acme', 'slack', [], '2026-07-14T10:07:00.000Z'),
+    ).resolves.toMatchObject({
+      id: 'slack',
+      owners: [],
+    });
+    const discovery = new PostgresDiscoveryRepository(pool);
+    await discovery.record({
+      tenantId: 'tenant-acme',
+      id: 'idp:slack:1',
+      source: 'idp',
+      sourceReference: 'application/slack',
+      vendorName: 'Slack',
+      domain: 'slack.com',
+      observedAt: '2026-07-14T10:08:00.000Z',
+      activityCount: 1,
+      identityType: 'service_account',
+    });
+    await expect(discovery.list('tenant-acme')).resolves.toMatchObject([
+      { id: 'idp:slack:1', source: 'idp', identityType: 'service_account' },
+    ]);
   });
 });
 
@@ -151,6 +182,27 @@ function sampleFinding(): Finding {
       resourceId: 'resource-platform',
       grantId: 'grant-alice-maintain',
     },
+  };
+}
+
+function sampleCatalogApplication(): CatalogApplication {
+  return {
+    tenantId: 'tenant-acme',
+    id: 'slack',
+    vendorName: 'Slack',
+    normalizedName: 'slack',
+    domains: ['slack.com'],
+    aliases: [],
+    category: 'collaboration',
+    riskTier: 'high',
+    dataClassification: 'confidential',
+    recommendation: 'monitor',
+    owners: [
+      { identityId: 'identity-alice', role: 'technical', assignedAt: '2026-07-14T10:06:00.000Z' },
+    ],
+    approvedAlternatives: [],
+    createdAt: '2026-07-14T10:06:00.000Z',
+    updatedAt: '2026-07-14T10:06:00.000Z',
   };
 }
 

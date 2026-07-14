@@ -16,6 +16,8 @@ export interface GraphEntityBase {
 
 export interface Identity extends GraphEntityBase {
   readonly kind: 'identity';
+  readonly identityType?:
+    'human' | 'service_account' | 'bot' | 'oauth_application' | 'api_key' | 'integration';
   readonly displayName: string;
   readonly email?: string;
   readonly status: 'ACTIVE' | 'SUSPENDED' | 'DELETED' | 'UNKNOWN';

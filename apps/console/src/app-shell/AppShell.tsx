@@ -22,6 +22,8 @@ interface AppShellProps {
   readonly onEvidenceToggle: () => void;
   readonly search: string;
   readonly onSearchChange: (value: string) => void;
+  readonly activeNavigation?: string;
+  readonly onNavigate?: (label: string) => void;
 }
 
 export function AppShell({
@@ -33,6 +35,8 @@ export function AppShell({
   onEvidenceToggle,
   search,
   onSearchChange,
+  activeNavigation = 'Inventory',
+  onNavigate,
 }: AppShellProps) {
   return (
     <main className={`app-shell ${navigationOpen ? 'navigation-open' : ''}`}>
@@ -54,9 +58,10 @@ export function AppShell({
         <nav>
           {navigation.map((label) => (
             <button
-              aria-current={label === 'Inventory' ? 'page' : undefined}
-              className={`navigation-item ${label === 'Inventory' ? 'is-active' : ''}`}
+              aria-current={label === activeNavigation ? 'page' : undefined}
+              className={`navigation-item ${label === activeNavigation ? 'is-active' : ''}`}
               key={label}
+              onClick={() => onNavigate?.(label)}
               type="button"
             >
               <span className="navigation-glyph" aria-hidden="true">

@@ -176,6 +176,7 @@ function identity(
       connectorId: 'github-cloud',
       externalId: String(facts.user.id),
       displayName: facts.user.login,
+      identityType: facts.user.type === 'Bot' ? 'bot' : 'human',
       status: 'ACTIVE',
       observedAt,
       attributes: {
