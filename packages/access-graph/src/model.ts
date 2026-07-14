@@ -69,6 +69,7 @@ export interface AccessView {
 
 export interface AccessGraphRepository {
   applySync(batch: GraphSyncBatch): Promise<void>;
+  listIdentities(tenantId: string): Promise<readonly Identity[]>;
   getIdentity(tenantId: string, identityId: string): Promise<Identity | undefined>;
   listAccessForIdentity(tenantId: string, identityId: string): Promise<readonly AccessView[]>;
 }
