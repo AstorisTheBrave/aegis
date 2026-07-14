@@ -3,13 +3,16 @@
 }
 body {
   margin: 0;
-  font: 14px Arial;
+  font:
+    14px Inter,
+    Arial,
+    sans-serif;
   color: #24334b;
   background: #f8f6f1;
 }
 main {
   display: grid;
-  grid-template-columns: 230px 1fr 390px;
+  grid-template-columns: 230px minmax(720px, 1fr) 425px;
   min-height: 100vh;
 }
 aside,
@@ -18,10 +21,11 @@ header {
   color: #eef3f7;
 }
 aside {
-  padding: 22px;
+  padding: 22px 12px;
 }
 .brand {
-  font-size: 30px;
+  padding: 0 12px;
+  font-size: 33px;
   color: #d79b3a;
 }
 .brand small,
@@ -34,10 +38,12 @@ td small {
 .env {
   border: 1px solid #49627d;
   padding: 14px;
-  margin: 30px 0;
+  border-radius: 5px;
+  margin: 30px 0 24px;
 }
 .nav {
-  padding: 12px 8px;
+  padding: 12px 16px;
+  border-radius: 3px;
   font-size: 15px;
 }
 .active {
@@ -53,19 +59,20 @@ section {
 }
 header {
   height: 72px;
-  padding: 24px 30px;
-  font-size: 15px;
+  padding: 20px 30px;
+  font-size: 14px;
 }
 header input {
   margin-left: 120px;
   width: 350px;
-  padding: 10px;
+  padding: 10px 14px;
+  border-radius: 5px;
   background: #173553;
   border: 1px solid #58708b;
   color: white;
 }
 .content {
-  padding: 30px;
+  padding: 30px 36px;
 }
 h1 {
   font-size: 26px;
@@ -78,7 +85,9 @@ h1 {
 .filters {
   margin: 28px 0;
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid #e1ded8;
+  border-radius: 4px;
+  background: #fff;
   color: #667;
 }
 table {
@@ -88,7 +97,7 @@ table {
 th,
 td {
   text-align: left;
-  padding: 16px 10px;
+  padding: 14px 10px;
   border-bottom: 1px solid #e5e0d8;
 }
 th {
@@ -105,7 +114,8 @@ td small {
 .panel {
   background: #fff;
   color: #27384d;
-  border-left: 1px solid #ddd;
+  border-left: 1px solid #dedbd4;
+  padding: 28px 24px;
 }
 .panel h3 {
   margin: 22px 0;
@@ -120,7 +130,8 @@ dd {
   margin: 7px 0;
 }
 .evidence {
-  border: 1px solid #ddd;
+  border: 1px solid #e2ded7;
+  border-radius: 4px;
   padding: 12px;
   margin-top: 10px;
 }
