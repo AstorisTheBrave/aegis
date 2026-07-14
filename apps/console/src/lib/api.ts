@@ -10,6 +10,9 @@ import type {
   ReviewCampaignSummary,
   DiscoveryQueueItem,
   PolicyEvaluation,
+  DryRunWorkflowInput,
+  WorkflowDefinition,
+  WorkflowExecution,
 } from '@aegis/api-contract';
 
 export type {
@@ -26,6 +29,9 @@ export type {
   CatalogOwner,
   DiscoveryQueueItem,
   PolicyEvaluation,
+  DryRunWorkflowInput,
+  WorkflowDefinition,
+  WorkflowExecution,
 } from '@aegis/api-contract';
 
 export interface AegisApi {
@@ -66,6 +72,8 @@ export interface AegisApi {
     applicationId: string,
     owners: readonly CatalogOwner[],
   ): Promise<CatalogApplication>;
+  listWorkflowTemplates(): Promise<readonly WorkflowDefinition[]>;
+  dryRunWorkflow(tenantId: string, input: DryRunWorkflowInput): Promise<WorkflowExecution>;
 }
 
 const sampleCatalog: readonly CatalogApplication[] = [
@@ -358,6 +366,37 @@ const sampleReviewPolicies: readonly PolicyEvaluation[] = [
   },
 ];
 
+const sampleWorkflowTemplates: readonly WorkflowDefinition[] = [
+  {
+    schemaVersion: 'workflow.v1',
+    id: 'leaver.v1',
+    version: '1.0.0',
+    title: 'Leaver',
+    trigger: 'hris',
+    steps: [
+      {
+        id: 'owner-approval',
+        kind: 'approval',
+        title: 'Owner approval',
+        approverRole: 'resource owner',
+      },
+      {
+        id: 'simulate-provider-action',
+        kind: 'provider_action',
+        title: 'Simulate account disable',
+        provider: 'target provider',
+        capability: 'disable account',
+        affectedSubject: 'source-linked subject',
+        requiredScopes: ['governance.simulate'],
+        idempotencyKey: 'leaver:{{subject}}',
+        retry: { maxAttempts: 3, backoffSeconds: 60 },
+        rollbackNarrative: 'No provider action occurs during dry run.',
+        providerMutation: false,
+      },
+    ],
+  },
+];
+
 function matchesQuery(identity: IdentitySummary, query: string): boolean {
   const normalized = query.trim().toLowerCase();
   return (
@@ -399,6 +438,36 @@ export const demoApi: AegisApi = {
       createdAt: new Date().toISOString(),
       status: 'open',
       tasks: [],
+    };
+  },
+  async listWorkflowTemplates() {
+    return sampleWorkflowTemplates;
+  },
+  async dryRunWorkflow(tenantId, input) {
+    const template = sampleWorkflowTemplates.find((item) => item.id === input.templateId);
+    if (!template) throw new Error('The requested workflow template was not found.');
+    const createdAt = new Date().toISOString();
+    return {
+      id: `dry-run:${tenantId}:${template.id}:${createdAt}`,
+      tenantId,
+      definitionId: template.id,
+      definitionVersion: template.version,
+      createdAt,
+      actor: input.actor,
+      status: 'requires_approval',
+      sourceFacts: input.sourceFacts,
+      providerMutation: false,
+      preview: template.steps.map((step) => ({
+        stepId: step.id,
+        kind: step.kind,
+        title: step.title,
+        status: step.kind === 'approval' ? 'pending_approval' : 'planned',
+        requiredScopes: step.kind === 'provider_action' ? step.requiredScopes : [],
+        ...(step.kind === 'provider_action'
+          ? { rollbackNarrative: step.rollbackNarrative, retry: step.retry }
+          : {}),
+        providerMutation: false,
+      })),
     };
   },
   async recordCampaignDecision(_tenantId, campaignId) {
@@ -517,6 +586,14 @@ export function createHttpApi(baseUrl: string): AegisApi {
         baseUrl,
         `/v1/tenants/${encodeURIComponent(tenantId)}/apps/${encodeURIComponent(applicationId)}/owners`,
         { method: 'POST', body: JSON.stringify({ owners }) },
+      ),
+    listWorkflowTemplates: () =>
+      requestJson<readonly WorkflowDefinition[]>(baseUrl, '/v1/workflow-templates'),
+    dryRunWorkflow: (tenantId, input) =>
+      requestJson<WorkflowExecution>(
+        baseUrl,
+        `/v1/tenants/${encodeURIComponent(tenantId)}/workflows/dry-run`,
+        { method: 'POST', body: JSON.stringify(input) },
       ),
   };
 }

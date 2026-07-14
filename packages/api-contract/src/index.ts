@@ -1,9 +1,15 @@
 import type { DiscoveryObservation, DiscoveryQueueItem } from '@aegis/discovery';
 import type { CatalogApplication, CatalogOwner } from '@aegis/saas-catalog';
 import type { PolicyEvaluation, ReviewPolicyId } from '@aegis/review-policies';
+import type {
+  DryRunWorkflowInput,
+  WorkflowDefinition,
+  WorkflowExecution,
+} from '@aegis/workflow-contract';
 
 export type { CatalogApplication, CatalogOwner, DiscoveryObservation, DiscoveryQueueItem };
 export type { PolicyEvaluation };
+export type { DryRunWorkflowInput, WorkflowDefinition, WorkflowExecution };
 
 export type AccessStatus = 'active' | 'requires_review' | 'suspended';
 

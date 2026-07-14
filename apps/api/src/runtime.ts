@@ -8,6 +8,7 @@ import {
   PostgresReviewCampaignRepository,
   PostgresSaasCatalogRepository,
   PostgresSyncRunStore,
+  PostgresWorkflowRepository,
 } from '@open-saas-governance/postgres-store';
 import { ExtensionRegistry } from '@aegis/extension-registry';
 import { GraphReviewCampaignManager, PolicyReviewCampaignManager } from './review-campaigns.js';
@@ -16,6 +17,7 @@ import { VerifiedExtensionRegistryManager } from './extensions.js';
 import { createApp } from './app.js';
 import { CatalogDiscoveryManager } from './discovery.js';
 import { DiscoveryReviewPolicyManager } from './review-policies.js';
+import { WorkflowManager } from './workflows.js';
 import { runMigrations } from './migrations.js';
 
 export interface RuntimeConfig {
@@ -63,6 +65,7 @@ export async function createRuntime(
       discovery,
       reviewPolicies,
       policyCampaigns: new PolicyReviewCampaignManager(reviewPolicies, reviewRepository, audit),
+      workflows: new WorkflowManager(new PostgresWorkflowRepository(pool), audit),
       syncRuns: new PostgresSyncRunStore(pool),
     });
     return {
