@@ -89,7 +89,13 @@ export class ActionManager {
       },
     ];
     return Promise.all(
-      templates.map((template) => this.request(tenantId, { ...template, ...input })),
+      templates.map((template) =>
+        this.request(tenantId, {
+          ...template,
+          target: input.target,
+          requestedBy: input.requestedBy,
+        }),
+      ),
     );
   }
 

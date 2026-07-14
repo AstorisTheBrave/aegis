@@ -30,6 +30,9 @@ describe('ControlledActionEngine', () => {
     await expect(
       engine.approve('acme', first.id, { approver: input.requestedBy, reason: 'no' }),
     ).rejects.toThrow('Requester cannot approve');
+    await expect(
+      engine.approve('acme', first.id, { approver: ' REQUESTER@ACME.DEV ', reason: 'no' }),
+    ).rejects.toThrow('Requester cannot approve');
     const approved = await engine.approve('acme', first.id, {
       approver: 'approver@acme.dev',
       reason: 'Validated HRIS offboarding event.',
@@ -84,5 +87,15 @@ describe('ControlledActionEngine', () => {
         },
       }),
     ).resolves.toMatchObject({ status: 'approved' });
+  });
+
+  it('rejects provider and action combinations without a certified allowlist entry', async () => {
+    const engine = new ControlledActionEngine(
+      new InMemoryActionRepository(),
+      new InMemoryAuditLedger(),
+    );
+    await expect(
+      engine.request('acme', { ...input, provider: 'mock-github', kind: 'disable_account' }),
+    ).rejects.toThrow('not allowlisted');
   });
 });
