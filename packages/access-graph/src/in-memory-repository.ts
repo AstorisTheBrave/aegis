@@ -79,28 +79,32 @@ export class InMemoryAccessGraphRepository implements AccessGraphRepository {
     );
   }
 
+  async listResources(tenantId: string): Promise<readonly Resource[]> {
+    return [...(this.#tenants.get(tenantId)?.resources.values() ?? [])].sort((left, right) =>
+      left.displayName.localeCompare(right.displayName),
+    );
+  }
+
+  async listAccess(tenantId: string): Promise<readonly AccessView[]> {
+    const graph = this.#tenants.get(tenantId);
+    if (!graph) return [];
+
+    return [...graph.grants.values()]
+      .sort((left, right) => left.id.localeCompare(right.id))
+      .flatMap((grant) => {
+        const identity = graph.identities.get(grant.identityId);
+        const entitlement = graph.entitlements.get(grant.entitlementId);
+        const resource = entitlement ? graph.resources.get(entitlement.resourceId) : undefined;
+        return identity && entitlement && resource
+          ? [{ identity, entitlement, resource, grant }]
+          : [];
+      });
+  }
+
   async listAccessForIdentity(
     tenantId: string,
     identityId: string,
   ): Promise<readonly AccessView[]> {
-    const graph = this.#tenants.get(tenantId);
-    const identity = graph?.identities.get(identityId);
-    if (!graph || !identity) {
-      return [];
-    }
-
-    return [...graph.grants.values()]
-      .filter((grant) => grant.identityId === identityId)
-      .map((grant) => {
-        const entitlement = graph.entitlements.get(grant.entitlementId);
-        if (!entitlement) {
-          throw new Error(`Grant ${grant.id} has no entitlement`);
-        }
-        const resource = graph.resources.get(entitlement.resourceId);
-        if (!resource) {
-          throw new Error(`Entitlement ${entitlement.id} has no resource`);
-        }
-        return { identity, entitlement, resource, grant };
-      });
+    return (await this.listAccess(tenantId)).filter((access) => access.identity.id === identityId);
   }
 }

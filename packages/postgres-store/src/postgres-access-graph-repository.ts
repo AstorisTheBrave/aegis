@@ -129,6 +129,49 @@ export class PostgresAccessGraphRepository implements AccessGraphRepository {
     return result.rows.map(toIdentity);
   }
 
+  async listResources(tenantId: string): Promise<readonly Resource[]> {
+    const result = await this.pool.query<{
+      tenantId: string;
+      id: string;
+      connectorId: string;
+      externalId: string;
+      displayName: string;
+      resourceType: string;
+      parentResourceId: string | null;
+      observed_at: Date;
+      attributes: JsonObject;
+    }>(
+      `SELECT tenant_id AS "tenantId", id, connector_id AS "connectorId", external_id AS "externalId",
+              display_name AS "displayName", resource_type AS "resourceType",
+              parent_resource_id AS "parentResourceId", observed_at, attributes
+         FROM governance_resources
+        WHERE tenant_id = $1
+        ORDER BY display_name, id`,
+      [tenantId],
+    );
+    return result.rows.map((row) => ({
+      kind: 'resource',
+      tenantId: row.tenantId,
+      id: row.id,
+      connectorId: row.connectorId,
+      externalId: row.externalId,
+      displayName: row.displayName,
+      resourceType: row.resourceType,
+      ...(row.parentResourceId ? { parentResourceId: row.parentResourceId } : {}),
+      observedAt: row.observed_at.toISOString(),
+      attributes: row.attributes,
+    }));
+  }
+
+  async listAccess(tenantId: string): Promise<readonly AccessView[]> {
+    const identities = await this.listIdentities(tenantId);
+    return (
+      await Promise.all(
+        identities.map((identity) => this.listAccessForIdentity(tenantId, identity.id)),
+      )
+    ).flat();
+  }
+
   async listAccessForIdentity(
     tenantId: string,
     identityId: string,

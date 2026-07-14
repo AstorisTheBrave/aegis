@@ -89,6 +89,10 @@ describe('InMemoryAccessGraphRepository', () => {
         resource: expect.objectContaining({ resourceType: 'repository' }),
       }),
     ]);
+    await expect(repository.listResources('tenant-acme')).resolves.toEqual([
+      expect.objectContaining({ id: 'resource-repository' }),
+    ]);
+    await expect(repository.listAccess('tenant-acme')).resolves.toHaveLength(1);
   });
 
   it('rejects a grant whose required graph nodes are absent', async () => {

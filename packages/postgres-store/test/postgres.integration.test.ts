@@ -46,6 +46,10 @@ describeDatabase('PostgreSQL storage adapters', () => {
         grant: expect.objectContaining({ grantType: 'DIRECT' }),
       }),
     ]);
+    await expect(graph.listResources('tenant-acme')).resolves.toEqual([
+      expect.objectContaining({ id: 'resource-platform' }),
+    ]);
+    await expect(graph.listAccess('tenant-acme')).resolves.toHaveLength(1);
 
     await ledger.append({
       tenantId: 'tenant-acme',
