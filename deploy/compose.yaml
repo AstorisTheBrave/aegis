@@ -10,8 +10,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
-    ports:
-      - '5432:5432'
     volumes:
       - governance-postgres-v18:/var/lib/postgresql
 
@@ -37,7 +35,32 @@ services:
       retries: 12
       start_period: 10s
     ports:
-      - '3000:3000'
+      - '${AEGIS_API_HOST:-127.0.0.1}:${AEGIS_API_PORT:-3000}:3000'
+
+  console:
+    build:
+      context: ..
+      dockerfile: apps/console/Dockerfile
+      args:
+        VITE_AEGIS_API_URL: /api
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      AEGIS_API_URL: http://api:3000
+      PORT: '4173'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "fetch(\"http://127.0.0.1:4173/health\").then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    ports:
+      - '${AEGIS_CONSOLE_HOST:-127.0.0.1}:${AEGIS_CONSOLE_PORT:-4173}:4173'
 
 volumes:
   governance-postgres-v18:

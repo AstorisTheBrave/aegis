@@ -420,7 +420,17 @@ function isReviewDecisionInput(value: unknown): value is ReviewDecisionInput {
 }
 
 export function createApp(graph: AccessGraphRepository, services: ApiServices = {}) {
-  const app = Fastify({ logger: true });
+  const app = Fastify({
+    logger: true,
+    bodyLimit: 1_048_576,
+    routerOptions: { maxParamLength: 512 },
+  });
+  app.addHook('onSend', async (request, reply) => {
+    reply.header('x-content-type-options', 'nosniff');
+    reply.header('x-frame-options', 'DENY');
+    reply.header('referrer-policy', 'no-referrer');
+    if (request.url.startsWith('/v1/')) reply.header('cache-control', 'no-store');
+  });
   const findings = services.findings ?? new GraphFindingReader(graph);
   app.get('/health', async () => ({ status: 'ok' }));
   app.get('/ready', async () => ({ status: 'ready' }));

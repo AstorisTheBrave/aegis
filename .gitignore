@@ -10,3 +10,5 @@ coverage/
 __pycache__/
 .turbo/
 *.tsbuildinfo
+apps/e2e/playwright-report/
+apps/e2e/test-results/

@@ -193,6 +193,13 @@ describe('Aegis API', () => {
     const app = createApp(await createGraph(), services);
     expect((await app.inject('/health')).json()).toEqual({ status: 'ok' });
     expect((await app.inject('/ready')).json()).toEqual({ status: 'ready' });
+    const protectedResponse = await app.inject('/v1/tenants/acme/identities');
+    expect(protectedResponse.headers).toMatchObject({
+      'cache-control': 'no-store',
+      'referrer-policy': 'no-referrer',
+      'x-content-type-options': 'nosniff',
+      'x-frame-options': 'DENY',
+    });
     expect((await app.inject('/v1/extensions?kind=policy-pack')).json()).toMatchObject([
       { id: 'soc2-baseline', kind: 'policy-pack' },
     ]);
@@ -203,6 +210,18 @@ describe('Aegis API', () => {
       { id: 'alice', displayName: 'Alice Example', source: 'GitHub' },
     ]);
     expect((await app.inject('/v1/tenants/t/identities/nope')).statusCode).toBe(404);
+    await app.close();
+  });
+
+  it('rejects request bodies above the configured API limit', async () => {
+    const app = createApp(await createGraph());
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/tenants/acme/assistance',
+      headers: { 'content-type': 'application/json' },
+      payload: JSON.stringify({ sourceFacts: [{ label: 'x'.repeat(1_100_000) }] }),
+    });
+    expect(response.statusCode).toBe(413);
     await app.close();
   });
 
