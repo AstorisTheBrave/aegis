@@ -15,6 +15,7 @@
   "dependencies": {
     "@aegis/action-contract": "workspace:*",
     "@aegis/action-engine": "workspace:*",
+    "@aegis/access-requests": "workspace:*",
     "@aegis/provider-certification": "workspace:*",
     "@aegis/workflow-contract": "workspace:*",
     "@aegis/workflow-engine": "workspace:*",

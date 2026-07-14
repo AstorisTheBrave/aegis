@@ -134,3 +134,11 @@ The API does not accept provider credentials, arbitrary provider URLs, or a
 production environment selector for this flow. Every activation,
 certification, and action record remains auditable and explicitly reports
 `providerMutation: false`.
+
+## Time-bound access requests
+
+The access-request module accepts a bounded, idempotent self-service request,
+routes it to a distinct resource owner, and records approval or denial in the
+audit ledger. Approved requests are time-bound and expire automatically. The
+current fulfillment state is deliberately simulated: it requires the existing
+controlled-action path and explicitly reports `providerMutation: false`.

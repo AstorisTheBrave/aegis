@@ -11,6 +11,7 @@ import {
   PostgresSyncRunStore,
   PostgresWorkflowRepository,
   PostgresProviderCertificationRepository,
+  PostgresAccessRequestRepository,
 } from '@open-saas-governance/postgres-store';
 import { ExtensionRegistry } from '@aegis/extension-registry';
 import { GraphReviewCampaignManager, PolicyReviewCampaignManager } from './review-campaigns.js';
@@ -22,6 +23,7 @@ import { DiscoveryReviewPolicyManager } from './review-policies.js';
 import { WorkflowManager } from './workflows.js';
 import { ActionManager } from './actions.js';
 import { ProviderCertificationManager } from './certifications.js';
+import { AccessRequestManager } from './access-requests.js';
 import { runMigrations } from './migrations.js';
 
 export interface RuntimeConfig {
@@ -81,6 +83,7 @@ export async function createRuntime(
         certifications.activationRegistry,
       ),
       certifications,
+      accessRequests: new AccessRequestManager(new PostgresAccessRequestRepository(pool), audit),
       syncRuns: new PostgresSyncRunStore(pool),
     });
     return {
