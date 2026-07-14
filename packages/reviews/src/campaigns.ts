@@ -21,12 +21,21 @@ export interface ReviewTask {
   readonly tenantId: string;
   readonly campaignId: string;
   readonly finding: Finding;
+  readonly policy?: ReviewTaskPolicy;
   readonly resourceId?: string;
   readonly assignedReviewer?: string;
   readonly route: ReviewRoute;
   readonly dueAt?: string;
   readonly status: ReviewTaskStatus;
   readonly decisions: readonly ReviewDecisionRecord[];
+}
+
+export interface ReviewTaskPolicy {
+  readonly policyId: 'application-owner.v1' | 'non-human-identity.v1';
+  readonly subjectId: string;
+  readonly subjectKind: 'application' | 'non_human_identity';
+  readonly displayName: string;
+  readonly evidence: readonly { readonly sourceReference: string; readonly observedAt: string }[];
 }
 
 export interface ReviewCampaign {
@@ -59,6 +68,7 @@ export interface CreateCampaignInput {
   readonly tenantId: string;
   readonly title: string;
   readonly findings: readonly Finding[];
+  readonly policyContexts?: Readonly<Record<string, ReviewTaskPolicy>>;
   readonly resources: readonly CampaignResource[];
   readonly fallbackReviewer?: string;
   readonly dueAt?: string;
@@ -148,6 +158,7 @@ export class ReviewCampaignService {
         tenantId: input.tenantId,
         campaignId: id,
         finding,
+        ...(input.policyContexts?.[finding.id] ? { policy: input.policyContexts[finding.id] } : {}),
         ...(resourceId ? { resourceId } : {}),
         ...(owner || input.fallbackReviewer
           ? { assignedReviewer: owner ?? input.fallbackReviewer }

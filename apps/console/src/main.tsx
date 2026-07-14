@@ -8,6 +8,7 @@ import { DiscoveryQueue } from './features/discovery/DiscoveryQueue.js';
 import { CatalogTable } from './features/catalog/CatalogTable.js';
 import { CampaignList } from './features/reviews/CampaignList.js';
 import { DecisionControls } from './features/reviews/DecisionControls.js';
+import { PolicyQueue } from './features/reviews/PolicyQueue.js';
 import {
   aegisApi,
   type FindingDetail,
@@ -15,6 +16,7 @@ import {
   type DiscoveryQueueItem,
   type IdentitySummary,
   type ReviewCampaignSummary,
+  type PolicyEvaluation,
 } from './lib/api.js';
 import './styles.css';
 
@@ -36,6 +38,8 @@ export function AegisConsole() {
   const [catalog, setCatalog] = useState<readonly CatalogApplication[]>([]);
   const [discoveryQueue, setDiscoveryQueue] = useState<readonly DiscoveryQueueItem[]>([]);
   const [discoveryLoading, setDiscoveryLoading] = useState(true);
+  const [policyEvaluations, setPolicyEvaluations] = useState<readonly PolicyEvaluation[]>([]);
+  const [policyLoading, setPolicyLoading] = useState(true);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setQuery(search), 200);
@@ -79,6 +83,28 @@ export function AegisConsole() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    void aegisApi.listReviewPolicies(tenantId).then((next) => {
+      if (!active) return;
+      setPolicyEvaluations(next);
+      setPolicyLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function runPolicyReview(policyIds: readonly PolicyEvaluation['policyId'][]) {
+    const campaign = await aegisApi.createPolicyReviewCampaign(tenantId, {
+      title: 'Policy review',
+      policyIds,
+      fallbackReviewer: 'Aegis Admin',
+      actor: 'Aegis Admin',
+    });
+    setCampaigns((current) => [campaign, ...current]);
+  }
 
   async function assignCatalogOwners(
     applicationId: string,
@@ -181,6 +207,14 @@ export function AegisConsole() {
             applications={catalog}
             loading={discoveryLoading}
             onAssignOwners={assignCatalogOwners}
+          />
+        </div>
+      ) : activeNavigation === 'Reviews' ? (
+        <div className="inventory-page discovery-page">
+          <PolicyQueue
+            evaluations={policyEvaluations}
+            loading={policyLoading}
+            onRunReview={runPolicyReview}
           />
         </div>
       ) : (

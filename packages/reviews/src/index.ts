@@ -12,6 +12,7 @@ export type {
   ReviewDecisionRecord,
   ReviewRoute,
   ReviewTask,
+  ReviewTaskPolicy,
   ReviewTaskStatus,
 } from './campaigns.js';
 export type ReviewDecision = 'approved' | 'revocation_requested' | 'needs_information';

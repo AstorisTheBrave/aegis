@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateReviewPolicy } from '../src/index.js';
+import { evaluateReviewPolicy, policyEvaluationFinding } from '../src/index.js';
 
 describe('review policies', () => {
   it('emits source-linked review evidence for an ownerless non-human identity', () => {
@@ -21,6 +21,30 @@ describe('review policies', () => {
       recommendation: 'review_required',
       reasons: ['missing_owner', 'non_human_identity'],
       evidence: [{ sourceReference: 'idp/application/slack' }],
+    });
+  });
+
+  it('preserves source timestamps in the review task evidence', () => {
+    const evaluation = evaluateReviewPolicy(
+      'application-owner.v1',
+      {
+        id: 'design-tool',
+        tenantId: 'acme',
+        kind: 'application',
+        displayName: 'Design Tool',
+        owners: [],
+        sourceReferences: ['design tool'],
+        sourceEvidence: [
+          { sourceReference: 'design tool', observedAt: '2026-06-01T00:00:00.000Z' },
+        ],
+      },
+      '2026-07-14T16:00:00.000Z',
+    );
+
+    expect(policyEvaluationFinding(evaluation)).toMatchObject({
+      type: 'POLICY_REVIEW',
+      subject: { resourceId: 'design-tool' },
+      sourceFacts: [{ observedAt: '2026-06-01T00:00:00.000Z' }],
     });
   });
 });
