@@ -73,6 +73,12 @@ export class InMemoryAccessGraphRepository implements AccessGraphRepository {
     return this.#tenants.get(tenantId)?.identities.get(identityId);
   }
 
+  async listIdentities(tenantId: string): Promise<readonly Identity[]> {
+    return [...(this.#tenants.get(tenantId)?.identities.values() ?? [])].sort((left, right) =>
+      left.displayName.localeCompare(right.displayName),
+    );
+  }
+
   async listAccessForIdentity(
     tenantId: string,
     identityId: string,

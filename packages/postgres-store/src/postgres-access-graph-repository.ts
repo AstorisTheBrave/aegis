@@ -117,6 +117,18 @@ export class PostgresAccessGraphRepository implements AccessGraphRepository {
     return row ? toIdentity(row) : undefined;
   }
 
+  async listIdentities(tenantId: string): Promise<readonly Identity[]> {
+    const result = await this.pool.query<IdentityRow>(
+      `SELECT tenant_id AS "tenantId", id, connector_id AS "connectorId", external_id AS "externalId",
+              display_name AS "displayName", email, status, observed_at, attributes
+         FROM governance_identities
+        WHERE tenant_id = $1
+        ORDER BY display_name, id`,
+      [tenantId],
+    );
+    return result.rows.map(toIdentity);
+  }
+
   async listAccessForIdentity(
     tenantId: string,
     identityId: string,
