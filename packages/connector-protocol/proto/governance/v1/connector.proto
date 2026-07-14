@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package open_saas_governance.connector.v1;
+
+import "google/protobuf/empty.proto";
+
+service Connector {
+  rpc GetManifest(google.protobuf.Empty) returns (ConnectorManifest);
+  rpc ValidateConnection(ValidateConnectionRequest) returns (ValidateConnectionResponse);
+  rpc Sync(SyncRequest) returns (stream SyncEvent);
+}
+
+message ConnectorManifest {
+  string protocol_version = 1;
+  string id = 2;
+  string vendor = 3;
+  repeated string capabilities = 4;
+  repeated string authentication_modes = 5;
+  repeated string minimum_scopes = 6;
+  string image_digest = 7;
+}
+
+message ValidateConnectionRequest {
+  string installation_id = 1;
+}
+
+message ValidateConnectionResponse {
+  bool valid = 1;
+  repeated string warnings = 2;
+}
+
+message SyncRequest {
+  string installation_id = 1;
+  string cursor = 2;
+  bool full_sync = 3;
+}
+
+message SyncEvent {
+  oneof event {
+    IdentityUpsert identity_upsert = 1;
+    ResourceUpsert resource_upsert = 2;
+    EntitlementUpsert entitlement_upsert = 3;
+    GrantUpsert grant_upsert = 4;
+    UsageObservation usage_observation = 5;
+    SyncCheckpoint checkpoint = 6;
+    SyncFailure failure = 7;
+  }
+}
+
+message IdentityUpsert { string external_id = 1; string display_name = 2; }
+message ResourceUpsert { string external_id = 1; string display_name = 2; }
+message EntitlementUpsert { string external_id = 1; string display_name = 2; }
+message GrantUpsert { string external_id = 1; string principal_external_id = 2; }
+message UsageObservation { string external_id = 1; string observed_at = 2; }
+message SyncCheckpoint { string cursor = 1; }
+message SyncFailure { string code = 1; string message = 2; int64 retry_after_seconds = 3; }
