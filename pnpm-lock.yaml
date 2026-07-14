@@ -83,6 +83,16 @@ importers:
         specifier: 4.1.10
         version: 4.1.10(@types/node@24.1.0)(vite@8.1.4(@types/node@24.1.0))
 
+  packages/findings:
+    dependencies:
+      '@open-saas-governance/access-graph':
+        specifier: workspace:*
+        version: link:../access-graph
+    devDependencies:
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(vite@8.1.4(@types/node@24.1.0))
+
   packages/ingestion:
     dependencies:
       '@open-saas-governance/access-graph':
