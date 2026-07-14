@@ -1,0 +1,36 @@
+name: Feature request
+description: Propose a user-facing improvement or new capability.
+title: 'feature: '
+labels:
+  - feature
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Describe the user, workflow, and current limitation.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed approach
+      description: Explain the intended behavior, extension boundary, and alternatives considered.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List observable outcomes and the tests or fixtures that would prove them.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safeguards
+    attributes:
+      label: Safeguards
+      options:
+        - label: This proposal does not require credentials or private customer data in the issue.
+          required: true
+        - label: I considered whether this capability belongs in an extension instead of the core.
+          required: true

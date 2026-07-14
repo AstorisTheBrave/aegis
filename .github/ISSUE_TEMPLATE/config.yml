@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/AstorisTheBrave/aegis/security/advisories/new
+    about: Report vulnerabilities privately. Do not include security details in a public issue.
+  - name: Read the contributing guide
+    url: https://github.com/AstorisTheBrave/aegis/blob/main/CONTRIBUTING.md
+    about: Check the project contracts and verification requirements before proposing a change.
