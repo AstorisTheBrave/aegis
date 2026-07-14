@@ -1,0 +1,10 @@
+.private/
+.firecrawl/
+.env
+.env.local
+node_modules/
+.next/
+dist/
+coverage/
+.turbo/
+*.tsbuildinfo

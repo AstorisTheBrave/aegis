@@ -1,0 +1,26 @@
+{
+  "name": "open-saas-governance",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Self-hosted, modular SaaS access governance.",
+  "packageManager": "pnpm@11.13.0",
+  "engines": {
+    "node": ">=24.13.1 <25",
+    "pnpm": ">=11.13.0 <12"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --check .",
+    "format:write": "prettier --write ."
+  },
+  "devDependencies": {
+    "prettier": "3.9.5",
+    "turbo": "2.10.5",
+    "typescript": "7.0.2"
+  }
+}
