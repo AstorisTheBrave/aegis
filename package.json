@@ -1,8 +1,8 @@
 {
-  "name": "open-saas-governance",
+  "name": "aegis",
   "private": true,
   "version": "0.1.0",
-  "description": "Self-hosted, modular SaaS access governance.",
+  "description": "A self-hosted, modular shield for SaaS access governance.",
   "packageManager": "pnpm@11.13.0",
   "engines": {
     "node": ">=24.13.1 <25",

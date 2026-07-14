@@ -1,9 +1,9 @@
-# Open SaaS Governance
+# Aegis
 
-Self-hosted, open-source SaaS access governance. It builds a verifiable graph
-of identities, accounts, resources, entitlements, and grants; turns that graph
-into explainable access reviews and evidence; and will grow into policy-driven
-discovery, lifecycle, and workflow governance.
+Aegis is a self-hosted, open-source shield for SaaS access governance. It
+builds a verifiable graph of identities, accounts, resources, entitlements,
+and grants; turns that graph into explainable access reviews and evidence; and
+will grow into policy-driven discovery, lifecycle, and workflow governance.
 
 ## First release
 
