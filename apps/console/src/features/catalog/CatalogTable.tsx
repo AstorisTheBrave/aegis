@@ -1,4 +1,5 @@
 import type { CatalogApplication, CatalogOwner } from '../../lib/api.js';
+import { ProviderLogo } from '../../components/ProviderLogo.js';
 
 interface CatalogTableProps {
   readonly applications: readonly CatalogApplication[];
@@ -30,8 +31,13 @@ export function CatalogTable({ applications, loading, onAssignOwners }: CatalogT
           {applications.map((application) => (
             <tr key={application.id}>
               <td>
-                <strong>{application.vendorName}</strong>
-                <small>{application.domains.join(', ')}</small>
+                <span className="catalog-application">
+                  <ProviderLogo decorative provider={application.vendorName} />
+                  <span>
+                    <strong>{application.vendorName}</strong>
+                    <small>{application.domains.join(', ')}</small>
+                  </span>
+                </span>
               </td>
               <td>{application.category}</td>
               <td>

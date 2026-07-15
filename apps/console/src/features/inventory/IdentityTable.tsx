@@ -1,4 +1,6 @@
 import type { IdentitySummary } from '../../lib/api.js';
+import { ChevronRight } from 'lucide-react';
+import { ProviderLogo } from '../../components/ProviderLogo.js';
 
 interface IdentityTableProps {
   readonly identities: readonly IdentitySummary[];
@@ -39,31 +41,32 @@ export function IdentityTable({
           {identities.map((identity) => {
             const selected = identity.id === selectedIdentityId;
             return (
-              <tr
-                aria-selected={selected}
-                className={selected ? 'is-selected' : undefined}
-                key={identity.id}
-                onClick={() => onSelect(identity)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    onSelect(identity);
-                  }
-                }}
-                tabIndex={0}
-              >
+              <tr className={selected ? 'is-selected' : undefined} key={identity.id}>
                 <td>
                   <span className="identity-cell">
                     <span className="identity-avatar">{identity.displayName.slice(0, 1)}</span>
                     <span>
                       <strong>{identity.displayName}</strong>
                       <small>{identity.email}</small>
+                      <button
+                        aria-pressed={selected}
+                        className="identity-details-button"
+                        onClick={() => onSelect(identity)}
+                        type="button"
+                      >
+                        {selected ? 'Viewing details' : 'View details'}
+                      </button>
                     </span>
                   </span>
                 </td>
                 <td>
-                  <strong>{identity.source}</strong>
-                  <small>{identity.sourceAccount}</small>
+                  <span className="source-cell">
+                    <ProviderLogo decorative provider={identity.source} />
+                    <span>
+                      <strong>{identity.source}</strong>
+                      <small>{identity.sourceAccount}</small>
+                    </span>
+                  </span>
                 </td>
                 <td>
                   <strong>{identity.platform}</strong>
@@ -77,7 +80,8 @@ export function IdentityTable({
                 <td>{identity.privileged ? 'Yes' : 'No'}</td>
                 <td>
                   <span className="last-seen">
-                    {identity.lastSeen} <span aria-hidden="true">›</span>
+                    {identity.lastSeen}{' '}
+                    <ChevronRight aria-hidden="true" size={14} strokeWidth={1.7} />
                   </span>
                 </td>
               </tr>
