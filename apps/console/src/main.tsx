@@ -437,6 +437,9 @@ export function AegisConsole() {
     () => filteredIdentities.find((identity) => identity.id === location.identityId),
     [filteredIdentities, location.identityId],
   );
+  const visibleIdentityRange = filteredIdentities.length
+    ? `1–${filteredIdentities.length} of ${filteredIdentities.length}`
+    : '0–0 of 0';
 
   useEffect(() => {
     if (!filteredIdentities.length || selectedIdentity) return;
@@ -789,7 +792,7 @@ export function AegisConsole() {
             selectedIdentityId={selectedIdentity?.id}
           />
           <footer className="table-footer">
-            <span>1–{filteredIdentities.length} of 142</span>
+            <span>{visibleIdentityRange}</span>
             <span>
               <button aria-label="Previous page" disabled type="button">
                 <ChevronLeft aria-hidden="true" size={14} strokeWidth={1.8} />

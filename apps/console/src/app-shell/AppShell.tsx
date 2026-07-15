@@ -47,9 +47,6 @@ export function AppShell({
     activeNavigation === 'Inventory'
       ? { section: 'Inventory', page: 'Identities' }
       : { section: 'Workspace', page: activeNavigation };
-  const primaryNavigation = navigationItems.filter(
-    ({ label }) => !['Workflows', 'Actions', 'Assistant'].includes(label),
-  );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -95,7 +92,7 @@ export function AppShell({
           <ChevronDown aria-hidden="true" size={14} strokeWidth={1.8} />
         </div>
         <nav>
-          {primaryNavigation.map(({ label, icon: Icon }) => (
+          {navigationItems.map(({ label, icon: Icon }) => (
             <button
               aria-current={label === activeNavigation ? 'page' : undefined}
               className={`navigation-item ${label === activeNavigation ? 'is-active' : ''}`}

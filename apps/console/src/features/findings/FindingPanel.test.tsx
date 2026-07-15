@@ -11,6 +11,14 @@ describe('FindingPanel', () => {
     ).toBeVisible();
     expect(screen.getByText('RoleBinding')).toBeVisible();
     expect(screen.getByText('ClusterRole')).toBeVisible();
+    expect(screen.getByText('Maintain')).toBeVisible();
+  });
+
+  it('renders the access value supplied by the finding', async () => {
+    const finding = await demoApi.getFinding('acme-platform', 'PRV-2025-00073');
+    if (!finding) throw new Error('Expected the demo finding to exist');
+    render(<FindingPanel finding={{ ...finding, access: 'Cluster administrator' }} />);
+    expect(screen.getByText('Cluster administrator')).toBeVisible();
   });
 
   it('explains the no-finding state', () => {

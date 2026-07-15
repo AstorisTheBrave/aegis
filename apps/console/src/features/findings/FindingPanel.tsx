@@ -40,7 +40,7 @@ export function FindingPanel({ finding }: { readonly finding?: FindingDetail }) 
         <div>
           <dt>Access</dt>
           <dd>
-            <span className="access-level">Privileged</span>
+            <span className="access-level">{finding.access}</span>
           </dd>
         </div>
         <div>
