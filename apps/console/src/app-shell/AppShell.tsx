@@ -1,5 +1,16 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ChevronDown, ChevronRight, Command, HelpCircle, Menu, Search } from 'lucide-react';
+import {
+  Bell,
+  ChevronDown,
+  ChevronRight,
+  CircleHelp,
+  Crown,
+  Menu,
+  Search,
+  Shield,
+  SquareTerminal,
+  X,
+} from 'lucide-react';
 import { CommandPalette } from './CommandPalette.js';
 import { ConsoleHelp } from './ConsoleHelp.js';
 import { navigationItems, type NavigationLabel } from './navigation.js';
@@ -36,6 +47,9 @@ export function AppShell({
     activeNavigation === 'Inventory'
       ? { section: 'Inventory', page: 'Identities' }
       : { section: 'Workspace', page: activeNavigation };
+  const primaryNavigation = navigationItems.filter(
+    ({ label }) => !['Workflows', 'Actions', 'Assistant'].includes(label),
+  );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -67,7 +81,8 @@ export function AppShell({
       <aside className="sidebar" aria-label="Primary navigation">
         <div className="brand-lockup">
           <span className="shield-mark" aria-hidden="true">
-            A
+            <Shield size={52} strokeWidth={2.25} />
+            <Crown className="shield-crown" size={19} strokeWidth={1.8} />
           </span>
           <span>
             <strong>Aegis</strong>
@@ -80,7 +95,7 @@ export function AppShell({
           <ChevronDown aria-hidden="true" size={14} strokeWidth={1.8} />
         </div>
         <nav>
-          {navigationItems.map(({ label, icon: Icon }) => (
+          {primaryNavigation.map(({ label, icon: Icon }) => (
             <button
               aria-current={label === activeNavigation ? 'page' : undefined}
               className={`navigation-item ${label === activeNavigation ? 'is-active' : ''}`}
@@ -103,59 +118,65 @@ export function AppShell({
           </span>
         </div>
       </aside>
-      <section className="workspace">
-        <header className="topbar">
-          <div className="breadcrumb">
-            <button
-              aria-label="Toggle navigation"
-              className="icon-button navigation-toggle"
-              onClick={onNavigationToggle}
-              type="button"
-            >
-              <Menu aria-hidden="true" size={18} />
-            </button>
-            <span>{breadcrumb.section}</span>
-            <ChevronRight aria-hidden="true" size={14} />
-            <strong>{breadcrumb.page}</strong>
-          </div>
-          <label className="global-search">
-            <span className="sr-only">Search identities, resources, roles</span>
-            <Search aria-hidden="true" size={14} strokeWidth={1.8} />
-            <input
-              ref={searchInput}
-              onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="Search identities, resources, roles..."
-              value={search}
-            />
-          </label>
-          <div className="topbar-actions">
-            <button
-              aria-label="Open command palette"
-              className="icon-button"
-              onClick={() => setCommandPaletteOpen(true)}
-              type="button"
-            >
-              <Command aria-hidden="true" size={15} strokeWidth={1.8} />
-            </button>
-            <button
-              aria-label="Open help"
-              className="icon-button"
-              onClick={() => setHelpOpen(true)}
-              type="button"
-            >
-              <HelpCircle aria-hidden="true" size={16} strokeWidth={1.8} />
-            </button>
-            <span className="topbar-avatar">AE</span>
-          </div>
-        </header>
-        {children}
-      </section>
+      <header className="topbar">
+        <div className="breadcrumb">
+          <button
+            aria-label="Toggle navigation"
+            className="icon-button navigation-toggle"
+            onClick={onNavigationToggle}
+            type="button"
+          >
+            <Menu aria-hidden="true" size={18} />
+          </button>
+          <span>{breadcrumb.section}</span>
+          <ChevronRight aria-hidden="true" size={14} />
+          <strong>{breadcrumb.page}</strong>
+        </div>
+        <label className="global-search">
+          <span className="sr-only">Search identities, resources, roles</span>
+          <Search aria-hidden="true" size={14} strokeWidth={1.8} />
+          <input
+            ref={searchInput}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder="Search identities, resources, roles..."
+            value={search}
+          />
+        </label>
+        <div className="topbar-actions">
+          <button aria-label="Notifications" className="icon-button" type="button">
+            <Bell aria-hidden="true" size={18} strokeWidth={1.8} />
+          </button>
+          <button
+            aria-label="Open help"
+            className="icon-button"
+            onClick={() => setHelpOpen(true)}
+            type="button"
+          >
+            <CircleHelp aria-hidden="true" size={19} strokeWidth={1.8} />
+          </button>
+          <button
+            aria-label="Open command palette"
+            className="icon-button"
+            onClick={() => setCommandPaletteOpen(true)}
+            type="button"
+          >
+            <SquareTerminal aria-hidden="true" size={19} strokeWidth={1.8} />
+          </button>
+          <span className="topbar-avatar">AE</span>
+        </div>
+      </header>
+      <section className="workspace">{children}</section>
       <aside
         className={`evidence-rail ${evidenceOpen ? 'is-open' : ''}`}
         aria-label="Finding evidence"
       >
-        <button className="evidence-close" onClick={onEvidenceToggle} type="button">
-          Close
+        <button
+          aria-label="Close evidence"
+          className="evidence-close"
+          onClick={onEvidenceToggle}
+          type="button"
+        >
+          <X aria-hidden="true" size={17} strokeWidth={1.8} />
         </button>
         {evidence}
       </aside>

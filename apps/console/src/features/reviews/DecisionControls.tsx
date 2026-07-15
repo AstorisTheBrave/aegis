@@ -1,10 +1,16 @@
 import { useState } from 'react';
+import { ShieldCheck, ShieldMinus, ShieldX } from 'lucide-react';
 import type { ReviewDecision } from '../../lib/api.js';
 
-const options: ReadonlyArray<{ value: ReviewDecision; label: string; description: string }> = [
-  { value: 'approved', label: 'Approve', description: 'Access is appropriate' },
-  { value: 'needs_information', label: 'Maintain', description: 'Keep access while reviewing' },
-  { value: 'revocation_requested', label: 'Revoke', description: 'Request removal from owner' },
+const options: ReadonlyArray<{
+  value: ReviewDecision;
+  label: string;
+  description: string;
+  icon: typeof ShieldCheck;
+}> = [
+  { value: 'approved', label: 'Approve', description: 'Access is valid', icon: ShieldCheck },
+  { value: 'needs_information', label: 'Maintain', description: 'Keep for now', icon: ShieldMinus },
+  { value: 'revocation_requested', label: 'Revoke', description: 'Remove access', icon: ShieldX },
 ];
 
 interface DecisionControlsProps {
@@ -37,19 +43,23 @@ export function DecisionControls({ disabled = false, onSubmit }: DecisionControl
     <section className="review-controls" aria-labelledby="review-heading">
       <h3 id="review-heading">Access Review Decision</h3>
       <div className="decision-options" role="group" aria-label="Access review decision">
-        {options.map((option) => (
-          <button
-            aria-pressed={decision === option.value}
-            className={decision === option.value ? 'is-chosen' : undefined}
-            disabled={disabled || submitting}
-            key={option.value}
-            onClick={() => setDecision(option.value)}
-            type="button"
-          >
-            <strong>{option.label}</strong>
-            <small>{option.description}</small>
-          </button>
-        ))}
+        {options.map((option) => {
+          const Icon = option.icon;
+          return (
+            <button
+              aria-pressed={decision === option.value}
+              className={decision === option.value ? 'is-chosen' : undefined}
+              disabled={disabled || submitting}
+              key={option.value}
+              onClick={() => setDecision(option.value)}
+              type="button"
+            >
+              <Icon aria-hidden="true" size={19} strokeWidth={1.8} />
+              <strong>{option.label}</strong>
+              <small>{option.description}</small>
+            </button>
+          );
+        })}
       </div>
       {decision === 'revocation_requested' ? (
         <p className="non-mutating-notice">
@@ -57,8 +67,9 @@ export function DecisionControls({ disabled = false, onSubmit }: DecisionControl
         </p>
       ) : null}
       <label className="comment-field">
-        <span className="sr-only">Decision comment</span>
+        <span>Optional comment</span>
         <textarea
+          aria-label="Decision comment"
           disabled={disabled || submitting}
           onChange={(event) => setComment(event.target.value)}
           placeholder="Add a comment (optional)..."
