@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChevronDown, ChevronLeft, ChevronRight, Search, SlidersHorizontal } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { AppShell } from './app-shell/AppShell.js';
+import type { NavigationLabel } from './app-shell/navigation.js';
+import { ConsoleLoadNotice } from './components/ConsoleLoadNotice.js';
 import { ExportEvidenceButton } from './features/evidence/ExportEvidenceButton.js';
+import { FindingList } from './features/findings/FindingList.js';
 import { FindingPanel } from './features/findings/FindingPanel.js';
 import { IdentityTable } from './features/inventory/IdentityTable.js';
+import { IdentityFilters } from './features/inventory/IdentityFilters.js';
 import { DiscoveryQueue } from './features/discovery/DiscoveryQueue.js';
 import { CatalogTable } from './features/catalog/CatalogTable.js';
 import { CampaignList } from './features/reviews/CampaignList.js';
@@ -14,6 +18,8 @@ import { WorkflowLibrary } from './features/workflows/WorkflowLibrary.js';
 import { ActionQueue } from './features/actions/ActionQueue.js';
 import { AccessRequestQueue } from './features/requests/AccessRequestQueue.js';
 import { AssistancePanel } from './features/assistance/AssistancePanel.js';
+import { WorkspacePlaceholder } from './features/workspace/WorkspacePlaceholder.js';
+import { type AccessFilter, useConsoleLocation } from './hooks/useConsoleLocation.js';
 import {
   aegisApi,
   type FindingDetail,
@@ -34,11 +40,28 @@ import {
 import './styles.css';
 
 const tenantId = 'acme-platform';
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'An unexpected request error occurred.';
+}
+
+function matchesIdentityFilters(
+  identity: IdentitySummary,
+  source: string,
+  platform: string,
+  access: AccessFilter,
+): boolean {
+  if (source && identity.source !== source) return false;
+  if (platform && identity.platform !== platform) return false;
+  if (access === 'privileged' && !identity.privileged) return false;
+  if (access === 'requires_review' && identity.status !== 'requires_review') return false;
+  return true;
+}
+
 export function AegisConsole() {
-  const [search, setSearch] = useState('');
-  const [query, setQuery] = useState('');
+  const [location, setLocation] = useConsoleLocation();
+  const [query, setQuery] = useState(() => location.query);
   const [identities, setIdentities] = useState<readonly IdentitySummary[]>([]);
-  const [selectedIdentityId, setSelectedIdentityId] = useState('alice-example');
   const [finding, setFinding] = useState<FindingDetail>();
   const [findings, setFindings] = useState<readonly FindingListItem[]>([]);
   const [selectedFindingId, setSelectedFindingId] = useState<string>();
@@ -47,7 +70,6 @@ export function AegisConsole() {
   const [loading, setLoading] = useState(true);
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
-  const [activeNavigation, setActiveNavigation] = useState('Inventory');
   const [catalog, setCatalog] = useState<readonly CatalogApplication[]>([]);
   const [discoveryQueue, setDiscoveryQueue] = useState<readonly DiscoveryQueueItem[]>([]);
   const [discoveryLoading, setDiscoveryLoading] = useState(true);
@@ -66,6 +88,11 @@ export function AegisConsole() {
   const [assistanceSettings, setAssistanceSettings] = useState<AssistanceSettings>();
   const [assistanceOutput, setAssistanceOutput] = useState<AssistanceOutput>();
   const [assistanceLoading, setAssistanceLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string>();
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const activeNavigation = location.navigation;
+  const search = location.query;
 
   useEffect(() => {
     const timer = window.setTimeout(() => setQuery(search), 200);
@@ -75,54 +102,84 @@ export function AegisConsole() {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    void aegisApi.listIdentities(tenantId, query).then((next) => {
-      if (!active) return;
-      setIdentities(next);
-      setSelectedIdentityId((current) =>
-        next.some((identity) => identity.id === current) ? current : (next[0]?.id ?? ''),
-      );
-      setLoading(false);
-    });
+    void aegisApi
+      .listIdentities(tenantId, query)
+      .then((next) => {
+        if (!active) return;
+        setIdentities(next);
+        setLocation((current) => ({
+          ...current,
+          identityId: next.some((identity) => identity.id === current.identityId)
+            ? current.identityId
+            : (next[0]?.id ?? ''),
+        }));
+      })
+      .catch((error: unknown) => {
+        if (active) setLoadError((current) => current ?? errorMessage(error));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
     return () => {
       active = false;
     };
-  }, [query]);
+  }, [query, reloadKey, setLocation]);
 
   useEffect(() => {
     let active = true;
-    void aegisApi.listFindings(tenantId).then((next) => {
-      if (!active) return;
-      setFindings(next);
-      setSelectedFindingId(next[0]?.id);
-    });
+    void aegisApi
+      .listFindings(tenantId)
+      .then((next) => {
+        if (!active) return;
+        setFindings(next);
+      })
+      .catch((error: unknown) => {
+        if (active) setLoadError((current) => current ?? errorMessage(error));
+      });
     return () => {
       active = false;
     };
-  }, []);
+  }, [reloadKey]);
 
   useEffect(() => {
     let active = true;
-    void aegisApi.listAccessRequests(tenantId).then((next) => {
-      if (!active) return;
-      setAccessRequests(next);
-      setAccessRequestsLoading(false);
-    });
+    setAccessRequestsLoading(true);
+    void aegisApi
+      .listAccessRequests(tenantId)
+      .then((next) => {
+        if (!active) return;
+        setAccessRequests(next);
+      })
+      .catch((error: unknown) => {
+        if (active) setLoadError((current) => current ?? errorMessage(error));
+      })
+      .finally(() => {
+        if (active) setAccessRequestsLoading(false);
+      });
     return () => {
       active = false;
     };
-  }, []);
+  }, [reloadKey]);
 
   useEffect(() => {
     let active = true;
-    void aegisApi.getAssistanceSettings(tenantId).then((next) => {
-      if (!active) return;
-      setAssistanceSettings(next);
-      setAssistanceLoading(false);
-    });
+    setAssistanceLoading(true);
+    void aegisApi
+      .getAssistanceSettings(tenantId)
+      .then((next) => {
+        if (!active) return;
+        setAssistanceSettings(next);
+      })
+      .catch((error: unknown) => {
+        if (active) setLoadError((current) => current ?? errorMessage(error));
+      })
+      .finally(() => {
+        if (active) setAssistanceLoading(false);
+      });
     return () => {
       active = false;
     };
-  }, []);
+  }, [reloadKey]);
 
   async function enableAssistance() {
     const settings = await aegisApi.updateAssistanceSettings(tenantId, {
@@ -171,13 +228,18 @@ export function AegisConsole() {
 
   useEffect(() => {
     let active = true;
-    void aegisApi.listTestActivations(tenantId).then((next) => {
-      if (active) setTestActivations(next);
-    });
+    void aegisApi
+      .listTestActivations(tenantId)
+      .then((next) => {
+        if (active) setTestActivations(next);
+      })
+      .catch((error: unknown) => {
+        if (active) setLoadError((current) => current ?? errorMessage(error));
+      });
     return () => {
       active = false;
     };
-  }, []);
+  }, [reloadKey]);
 
   useEffect(() => {
     if (!selectedFindingId) {
@@ -185,9 +247,14 @@ export function AegisConsole() {
       return;
     }
     let active = true;
-    void aegisApi.getFinding(tenantId, selectedFindingId).then((next) => {
-      if (active) setFinding(next);
-    });
+    void aegisApi
+      .getFinding(tenantId, selectedFindingId)
+      .then((next) => {
+        if (active) setFinding(next);
+      })
+      .catch((error: unknown) => {
+        if (active) setLoadError((current) => current ?? errorMessage(error));
+      });
     return () => {
       active = false;
     };
@@ -195,27 +262,43 @@ export function AegisConsole() {
 
   useEffect(() => {
     let active = true;
-    void aegisApi.listReviewCampaigns(tenantId).then((next) => {
-      if (!active) return;
-      setCampaigns(next);
-      setCampaignsLoading(false);
-    });
+    setCampaignsLoading(true);
+    void aegisApi
+      .listReviewCampaigns(tenantId)
+      .then((next) => {
+        if (!active) return;
+        setCampaigns(next);
+      })
+      .catch((error: unknown) => {
+        if (active) setLoadError((current) => current ?? errorMessage(error));
+      })
+      .finally(() => {
+        if (active) setCampaignsLoading(false);
+      });
     return () => {
       active = false;
     };
-  }, []);
+  }, [reloadKey]);
 
   useEffect(() => {
     let active = true;
-    void aegisApi.listWorkflowTemplates().then((next) => {
-      if (!active) return;
-      setWorkflowTemplates(next);
-      setWorkflowLoading(false);
-    });
+    setWorkflowLoading(true);
+    void aegisApi
+      .listWorkflowTemplates()
+      .then((next) => {
+        if (!active) return;
+        setWorkflowTemplates(next);
+      })
+      .catch((error: unknown) => {
+        if (active) setLoadError((current) => current ?? errorMessage(error));
+      })
+      .finally(() => {
+        if (active) setWorkflowLoading(false);
+      });
     return () => {
       active = false;
     };
-  }, []);
+  }, [reloadKey]);
 
   async function runWorkflow(templateId: string) {
     const execution = await aegisApi.dryRunWorkflow(tenantId, {
@@ -242,20 +325,28 @@ export function AegisConsole() {
       ...next,
       ...current.filter((action) => !next.some((item) => item.id === action.id)),
     ]);
-    setActiveNavigation('Actions');
+    setLocation((current) => ({ ...current, navigation: 'Actions' }));
   }
 
   useEffect(() => {
     let active = true;
-    void aegisApi.listActions(tenantId).then((next) => {
-      if (!active) return;
-      setActions(next);
-      setActionsLoading(false);
-    });
+    setActionsLoading(true);
+    void aegisApi
+      .listActions(tenantId)
+      .then((next) => {
+        if (!active) return;
+        setActions(next);
+      })
+      .catch((error: unknown) => {
+        if (active) setLoadError((current) => current ?? errorMessage(error));
+      })
+      .finally(() => {
+        if (active) setActionsLoading(false);
+      });
     return () => {
       active = false;
     };
-  }, []);
+  }, [reloadKey]);
 
   async function updateAction(
     action: ControlledAction,
@@ -267,15 +358,23 @@ export function AegisConsole() {
 
   useEffect(() => {
     let active = true;
-    void aegisApi.listReviewPolicies(tenantId).then((next) => {
-      if (!active) return;
-      setPolicyEvaluations(next);
-      setPolicyLoading(false);
-    });
+    setPolicyLoading(true);
+    void aegisApi
+      .listReviewPolicies(tenantId)
+      .then((next) => {
+        if (!active) return;
+        setPolicyEvaluations(next);
+      })
+      .catch((error: unknown) => {
+        if (active) setLoadError((current) => current ?? errorMessage(error));
+      })
+      .finally(() => {
+        if (active) setPolicyLoading(false);
+      });
     return () => {
       active = false;
     };
-  }, []);
+  }, [reloadKey]);
 
   async function runPolicyReview(policyIds: readonly PolicyEvaluation['policyId'][]) {
     const campaign = await aegisApi.createPolicyReviewCampaign(tenantId, {
@@ -301,23 +400,56 @@ export function AegisConsole() {
 
   useEffect(() => {
     let active = true;
-    void Promise.all([aegisApi.listCatalog(tenantId), aegisApi.listDiscoveryQueue(tenantId)]).then(
-      ([nextCatalog, nextQueue]) => {
+    setDiscoveryLoading(true);
+    void Promise.all([aegisApi.listCatalog(tenantId), aegisApi.listDiscoveryQueue(tenantId)])
+      .then(([nextCatalog, nextQueue]) => {
         if (!active) return;
         setCatalog(nextCatalog);
         setDiscoveryQueue(nextQueue);
-        setDiscoveryLoading(false);
-      },
-    );
+      })
+      .catch((error: unknown) => {
+        if (active) setLoadError((current) => current ?? errorMessage(error));
+      })
+      .finally(() => {
+        if (active) setDiscoveryLoading(false);
+      });
     return () => {
       active = false;
     };
-  }, []);
+  }, [reloadKey]);
 
-  const selectedIdentity = useMemo(
-    () => identities.find((identity) => identity.id === selectedIdentityId),
-    [identities, selectedIdentityId],
+  const filteredIdentities = useMemo(
+    () =>
+      identities.filter((identity) =>
+        matchesIdentityFilters(identity, location.source, location.platform, location.access),
+      ),
+    [identities, location.access, location.platform, location.source],
   );
+  const sources = useMemo(
+    () => Array.from(new Set(identities.map((identity) => identity.source))).sort(),
+    [identities],
+  );
+  const platforms = useMemo(
+    () => Array.from(new Set(identities.map((identity) => identity.platform))).sort(),
+    [identities],
+  );
+  const selectedIdentity = useMemo(
+    () => filteredIdentities.find((identity) => identity.id === location.identityId),
+    [filteredIdentities, location.identityId],
+  );
+
+  useEffect(() => {
+    if (!filteredIdentities.length || selectedIdentity) return;
+    setLocation((current) => ({ ...current, identityId: filteredIdentities[0]?.id ?? '' }));
+  }, [filteredIdentities, selectedIdentity, setLocation]);
+
+  useEffect(() => {
+    setSelectedFindingId(
+      findings.find(
+        (item) => item.status === 'open' && item.identity === selectedIdentity?.displayName,
+      )?.id,
+    );
+  }, [findings, selectedIdentity]);
   const campaignTask = campaigns
     .flatMap((campaign) => campaign.tasks.map((task) => ({ campaign, task })))
     .find(({ task }) => task.findingId === finding?.id);
@@ -360,11 +492,22 @@ export function AegisConsole() {
       navigationOpen={navigationOpen}
       onEvidenceToggle={() => setEvidenceOpen((open) => !open)}
       onNavigationToggle={() => setNavigationOpen((open) => !open)}
-      onSearchChange={setSearch}
+      onSearchChange={(value) =>
+        setLocation((current) => ({ ...current, navigation: 'Inventory', query: value }))
+      }
       search={search}
       activeNavigation={activeNavigation}
-      onNavigate={setActiveNavigation}
+      onNavigate={(navigation: NavigationLabel) =>
+        setLocation((current) => ({ ...current, navigation }))
+      }
     >
+      <ConsoleLoadNotice
+        message={loadError}
+        onRetry={() => {
+          setLoadError(undefined);
+          setReloadKey((current) => current + 1);
+        }}
+      />
       {activeNavigation === 'Connectors' ? (
         <div className="inventory-page discovery-page">
           <div className="page-heading">
@@ -394,6 +537,14 @@ export function AegisConsole() {
           />
         </div>
       ) : activeNavigation === 'Reviews' ? (
+        <div className="inventory-page discovery-page">
+          <PolicyQueue
+            evaluations={policyEvaluations}
+            loading={policyLoading}
+            onRunReview={runPolicyReview}
+          />
+        </div>
+      ) : activeNavigation === 'Policies' ? (
         <div className="inventory-page discovery-page">
           <PolicyQueue
             evaluations={policyEvaluations}
@@ -492,6 +643,39 @@ export function AegisConsole() {
             settings={assistanceSettings}
           />
         </div>
+      ) : activeNavigation === 'Findings' ? (
+        <div className="inventory-page discovery-page">
+          <div className="page-heading">
+            <div>
+              <p className="eyebrow">Review workspace</p>
+              <h1>Findings</h1>
+              <p>Open access observations that need an accountable decision.</p>
+            </div>
+            <span className="identity-count">{findings.length} open</span>
+          </div>
+          <FindingList
+            findings={findings}
+            onSelect={(item) => {
+              setSelectedFindingId(item.id);
+              setLocation((current) => ({ ...current, navigation: 'Findings' }));
+            }}
+            selectedFindingId={selectedFindingId}
+          />
+        </div>
+      ) : activeNavigation === 'Controls' ? (
+        <WorkspacePlaceholder
+          description="Operational controls will collect the console-wide safeguards that govern automation, evidence retention, and notification delivery."
+          eyebrow="Control plane"
+          nextStep="Connect a control-plane provider to configure these safeguards."
+          title="Controls"
+        />
+      ) : activeNavigation === 'Settings' ? (
+        <WorkspacePlaceholder
+          description="Workspace settings will keep tenant preferences and administrator configuration separate from governed access decisions."
+          eyebrow="Workspace"
+          nextStep="Connect an organisation settings provider to manage workspace configuration."
+          title="Settings"
+        />
       ) : (
         <div className="inventory-page">
           <div className="page-heading">
@@ -500,53 +684,64 @@ export function AegisConsole() {
               <h1>Identities</h1>
               <p>Observed access across connected systems. Aegis does not change source access.</p>
             </div>
-            <span className="identity-count">{identities.length} people</span>
+            <span className="identity-count">{filteredIdentities.length} people</span>
           </div>
           <div className="tabs" role="tablist" aria-label="Identity kinds">
             <button aria-selected="true" role="tab" type="button">
               People
             </button>
-            <button aria-selected="false" role="tab" type="button">
+            <button
+              aria-selected="false"
+              disabled
+              role="tab"
+              title="No service-account data is connected yet"
+              type="button"
+            >
               Service accounts
             </button>
-            <button aria-selected="false" role="tab" type="button">
+            <button
+              aria-selected="false"
+              disabled
+              role="tab"
+              title="No group data is connected yet"
+              type="button"
+            >
               Groups
             </button>
           </div>
-          <div className="filters" aria-label="Identity filters">
-            <span className="filter-search">
-              <Search aria-hidden="true" size={13} strokeWidth={1.8} />
-              Search people...
-            </span>
-            <button type="button">
-              All sources <ChevronDown aria-hidden="true" size={13} strokeWidth={1.8} />
-            </button>
-            <button type="button">
-              All platforms <ChevronDown aria-hidden="true" size={13} strokeWidth={1.8} />
-            </button>
-            <button type="button">
-              Access: all <ChevronDown aria-hidden="true" size={13} strokeWidth={1.8} />
-            </button>
-            <button type="button">
-              <SlidersHorizontal aria-hidden="true" size={13} strokeWidth={1.8} />
-              Filters
-            </button>
-          </div>
+          <IdentityFilters
+            access={location.access}
+            onAccessChange={(access) => setLocation((current) => ({ ...current, access }))}
+            onClear={() =>
+              setLocation((current) => ({
+                ...current,
+                access: 'all',
+                platform: '',
+                query: '',
+                source: '',
+              }))
+            }
+            onPlatformChange={(platform) => setLocation((current) => ({ ...current, platform }))}
+            onSearchChange={(nextSearch) =>
+              setLocation((current) => ({ ...current, query: nextSearch }))
+            }
+            onSourceChange={(source) => setLocation((current) => ({ ...current, source }))}
+            platform={location.platform}
+            platforms={platforms}
+            search={search}
+            source={location.source}
+            sources={sources}
+          />
           <IdentityTable
-            identities={identities}
+            identities={filteredIdentities}
             loading={loading}
-            onSelect={(identity) => {
-              setSelectedIdentityId(identity.id);
-              setSelectedFindingId(
-                findings.find(
-                  (item) => item.status === 'open' && item.identity === identity.displayName,
-                )?.id,
-              );
-            }}
+            onSelect={(identity) =>
+              setLocation((current) => ({ ...current, identityId: identity.id }))
+            }
             selectedIdentityId={selectedIdentity?.id}
           />
           <footer className="table-footer">
-            <span>Showing {identities.length} identities</span>
+            <span>Showing {filteredIdentities.length} identities</span>
             <span>
               Rows per page: 25
               <ChevronLeft aria-hidden="true" size={13} strokeWidth={1.8} />

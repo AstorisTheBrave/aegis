@@ -1,41 +1,8 @@
-import type { ReactNode } from 'react';
-import {
-  Bot,
-  Box,
-  ChevronDown,
-  ChevronRight,
-  ClipboardCheck,
-  Command,
-  GitBranch,
-  HelpCircle,
-  KeyRound,
-  LayoutDashboard,
-  ListChecks,
-  Menu,
-  Network,
-  Search,
-  Settings,
-  ShieldCheck,
-  SlidersHorizontal,
-  UsersRound,
-  Workflow,
-} from 'lucide-react';
-
-const navigation = [
-  { label: 'Inventory', icon: LayoutDashboard },
-  { label: 'Findings', icon: ShieldCheck },
-  { label: 'Reviews', icon: ClipboardCheck },
-  { label: 'Access', icon: KeyRound },
-  { label: 'Identities', icon: UsersRound },
-  { label: 'Resources', icon: Box },
-  { label: 'Policies', icon: ListChecks },
-  { label: 'Workflows', icon: Workflow },
-  { label: 'Actions', icon: GitBranch },
-  { label: 'Assistant', icon: Bot },
-  { label: 'Controls', icon: SlidersHorizontal },
-  { label: 'Connectors', icon: Network },
-  { label: 'Settings', icon: Settings },
-];
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { ChevronDown, ChevronRight, Command, HelpCircle, Menu, Search } from 'lucide-react';
+import { CommandPalette } from './CommandPalette.js';
+import { ConsoleHelp } from './ConsoleHelp.js';
+import { navigationItems, type NavigationLabel } from './navigation.js';
 
 interface AppShellProps {
   readonly children: ReactNode;
@@ -46,8 +13,8 @@ interface AppShellProps {
   readonly onEvidenceToggle: () => void;
   readonly search: string;
   readonly onSearchChange: (value: string) => void;
-  readonly activeNavigation?: string;
-  readonly onNavigate?: (label: string) => void;
+  readonly activeNavigation?: NavigationLabel;
+  readonly onNavigate?: (label: NavigationLabel) => void;
 }
 
 export function AppShell({
@@ -62,10 +29,38 @@ export function AppShell({
   activeNavigation = 'Inventory',
   onNavigate,
 }: AppShellProps) {
+  const searchInput = useRef<HTMLInputElement>(null);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const breadcrumb =
     activeNavigation === 'Inventory'
       ? { section: 'Inventory', page: 'Identities' }
       : { section: 'Workspace', page: activeNavigation };
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setCommandPaletteOpen(false);
+        setHelpOpen(false);
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setCommandPaletteOpen(true);
+      }
+      if (event.key === '?' && !event.metaKey && !event.ctrlKey) setHelpOpen(true);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  function navigate(label: NavigationLabel) {
+    onNavigate?.(label);
+    if (navigationOpen) onNavigationToggle();
+  }
+
+  function focusSearch() {
+    searchInput.current?.focus();
+  }
 
   return (
     <main className={`app-shell ${navigationOpen ? 'navigation-open' : ''}`}>
@@ -79,18 +74,18 @@ export function AppShell({
             <small>self-hosted</small>
           </span>
         </div>
-        <button className="environment-switcher" type="button">
+        <div className="environment-switcher" aria-label="Current environment">
           <span>acme/platform</span>
           <small>Environment</small>
           <ChevronDown aria-hidden="true" size={14} strokeWidth={1.8} />
-        </button>
+        </div>
         <nav>
-          {navigation.map(({ label, icon: Icon }) => (
+          {navigationItems.map(({ label, icon: Icon }) => (
             <button
               aria-current={label === activeNavigation ? 'page' : undefined}
               className={`navigation-item ${label === activeNavigation ? 'is-active' : ''}`}
               key={label}
-              onClick={() => onNavigate?.(label)}
+              onClick={() => navigate(label)}
               type="button"
             >
               <span className="navigation-glyph" aria-hidden="true">
@@ -127,16 +122,27 @@ export function AppShell({
             <span className="sr-only">Search identities, resources, roles</span>
             <Search aria-hidden="true" size={14} strokeWidth={1.8} />
             <input
+              ref={searchInput}
               onChange={(event) => onSearchChange(event.target.value)}
               placeholder="Search identities, resources, roles..."
               value={search}
             />
           </label>
           <div className="topbar-actions">
-            <button className="icon-button" type="button" aria-label="Open command palette">
+            <button
+              aria-label="Open command palette"
+              className="icon-button"
+              onClick={() => setCommandPaletteOpen(true)}
+              type="button"
+            >
               <Command aria-hidden="true" size={15} strokeWidth={1.8} />
             </button>
-            <button className="icon-button" type="button" aria-label="Open help">
+            <button
+              aria-label="Open help"
+              className="icon-button"
+              onClick={() => setHelpOpen(true)}
+              type="button"
+            >
               <HelpCircle aria-hidden="true" size={16} strokeWidth={1.8} />
             </button>
             <span className="topbar-avatar">AE</span>
@@ -156,6 +162,14 @@ export function AppShell({
       <button className="evidence-toggle" onClick={onEvidenceToggle} type="button">
         {evidenceOpen ? 'Hide evidence' : 'Show evidence'}
       </button>
+      <CommandPalette
+        onClose={() => setCommandPaletteOpen(false)}
+        onFocusSearch={focusSearch}
+        onNavigate={navigate}
+        onToggleEvidence={onEvidenceToggle}
+        open={commandPaletteOpen}
+      />
+      <ConsoleHelp onClose={() => setHelpOpen(false)} open={helpOpen} />
     </main>
   );
 }

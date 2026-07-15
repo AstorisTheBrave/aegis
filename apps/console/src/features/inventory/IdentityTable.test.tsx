@@ -4,7 +4,7 @@ import { demoApi } from '../../lib/api.js';
 import { IdentityTable } from './IdentityTable.js';
 
 describe('IdentityTable', () => {
-  it('renders review status and supports selecting a row by keyboard', async () => {
+  it('renders review status and selects an identity with a native button', async () => {
     const identities = await demoApi.listIdentities('acme-platform', 'Alice');
     const onSelect = vi.fn();
     render(
@@ -17,9 +17,7 @@ describe('IdentityTable', () => {
     );
 
     expect(screen.getByText('Requires review')).toBeVisible();
-    const row = screen.getByText('Alice Example').closest('tr');
-    if (!row) throw new Error('Expected identity table row.');
-    fireEvent.keyDown(row, { key: 'Enter' });
+    fireEvent.click(screen.getByRole('button', { name: 'View details' }));
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'alice-example' }));
   });
 

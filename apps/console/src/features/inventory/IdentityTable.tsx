@@ -41,25 +41,21 @@ export function IdentityTable({
           {identities.map((identity) => {
             const selected = identity.id === selectedIdentityId;
             return (
-              <tr
-                aria-selected={selected}
-                className={selected ? 'is-selected' : undefined}
-                key={identity.id}
-                onClick={() => onSelect(identity)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    onSelect(identity);
-                  }
-                }}
-                tabIndex={0}
-              >
+              <tr className={selected ? 'is-selected' : undefined} key={identity.id}>
                 <td>
                   <span className="identity-cell">
                     <span className="identity-avatar">{identity.displayName.slice(0, 1)}</span>
                     <span>
                       <strong>{identity.displayName}</strong>
                       <small>{identity.email}</small>
+                      <button
+                        aria-pressed={selected}
+                        className="identity-details-button"
+                        onClick={() => onSelect(identity)}
+                        type="button"
+                      >
+                        {selected ? 'Viewing details' : 'View details'}
+                      </button>
                     </span>
                   </span>
                 </td>

@@ -21,7 +21,8 @@ body {
 }
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 button {
@@ -30,7 +31,7 @@ button {
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
-tr:focus-visible {
+select:focus-visible {
   outline: 2px solid #c98b2a;
   outline-offset: 2px;
 }
@@ -296,6 +297,118 @@ tr:focus-visible {
   gap: 5px;
   justify-content: flex-end;
 }
+.command-overlay {
+  align-items: flex-start;
+  background: rgb(6 25 44 / 52%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: min(14vh, 120px) 20px 20px;
+  position: fixed;
+  z-index: 20;
+}
+.command-palette,
+.console-help {
+  background: #fffdfa;
+  border: 1px solid #d3cec4;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgb(5 28 49 / 32%);
+  color: #30465d;
+  width: min(560px, 100%);
+}
+.command-palette header {
+  align-items: center;
+  border-bottom: 1px solid #e7e2d9;
+  display: flex;
+  gap: 9px;
+  padding: 14px 16px;
+}
+.command-palette header strong {
+  font-size: 12px;
+}
+.command-palette header kbd {
+  margin-left: auto;
+}
+kbd {
+  background: #f0ede7;
+  border: 1px solid #d9d4ca;
+  border-radius: 3px;
+  color: #617080;
+  font-family: inherit;
+  font-size: 9px;
+  padding: 2px 5px;
+}
+.command-actions,
+.command-navigation {
+  display: grid;
+  padding: 7px;
+}
+.command-actions {
+  border-bottom: 1px solid #e7e2d9;
+}
+.command-actions button,
+.command-navigation button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: #40576c;
+  display: flex;
+  font-size: 11px;
+  gap: 9px;
+  padding: 8px 9px;
+  text-align: left;
+}
+.command-actions button:hover,
+.command-navigation button:hover {
+  background: #f4f0e8;
+  color: #163b59;
+}
+.command-actions kbd {
+  margin-left: auto;
+}
+.console-help {
+  padding: 20px;
+}
+.console-help header {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+}
+.console-help h2 {
+  color: #2c455d;
+  font-size: 20px;
+  margin: 2px 0 0;
+}
+.console-help header button {
+  background: transparent;
+  border: 1px solid #c7d0d7;
+  border-radius: 4px;
+  color: #466076;
+  font-size: 10px;
+  padding: 6px 8px;
+}
+.console-help dl {
+  display: grid;
+  gap: 12px;
+  margin: 22px 0 0;
+}
+.console-help dl div {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 74px 1fr;
+}
+.console-help dt {
+  color: #7b5b20;
+  font-size: 11px;
+  font-weight: 700;
+}
+.console-help dd {
+  color: #647587;
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 0;
+}
 
 .inventory-page {
   padding: 32px 35px 20px;
@@ -353,6 +466,10 @@ h1 {
   color: #233a52;
   font-weight: 650;
 }
+.tabs button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
 .filters {
   align-items: center;
   background: #fff;
@@ -369,8 +486,37 @@ h1 {
   display: inline-flex;
   font-size: 11px;
   gap: 6px;
+  flex: 1 1 155px;
   margin-right: auto;
-  padding: 5px 7px;
+  padding: 3px 7px;
+}
+.filter-search input {
+  background: transparent;
+  border: 0;
+  color: #405469;
+  font-size: 11px;
+  min-width: 0;
+  outline: 0;
+  padding: 3px 0;
+  width: 100%;
+}
+.filter-search input::placeholder {
+  color: #8a96a4;
+}
+.filter-select {
+  border-left: 1px solid #ebe8e1;
+  display: inline-flex;
+}
+.filter-select select {
+  appearance: none;
+  background: transparent
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23526273' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 7px center;
+  border: 0;
+  color: #526273;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 5px 24px 5px 8px;
 }
 .filters button {
   align-items: center;
@@ -382,6 +528,10 @@ h1 {
   font-size: 11px;
   gap: 3px;
   padding: 5px 8px;
+}
+.filters button:disabled {
+  cursor: default;
+  opacity: 0.5;
 }
 .identity-table-wrap {
   border: 1px solid #e5e2db;
@@ -411,7 +561,7 @@ h1 {
   vertical-align: middle;
 }
 .identity-table tbody tr {
-  cursor: pointer;
+  transition: background-color 120ms ease;
 }
 .identity-table tbody tr:hover {
   background: #fbfaf6;
@@ -430,6 +580,107 @@ h1 {
   display: block;
   font-size: 10px;
   margin-top: 2px;
+}
+.identity-details-button {
+  background: transparent;
+  border: 0;
+  color: #496c88;
+  font-size: 10px;
+  margin-top: 5px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.identity-details-button[aria-pressed='true'] {
+  color: #8a5e1b;
+  font-weight: 650;
+  text-decoration: none;
+}
+.console-load-notice {
+  align-items: center;
+  background: #fff7e8;
+  border-bottom: 1px solid #ead2a2;
+  color: #6e4e1a;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 11px 35px;
+}
+.console-load-notice strong,
+.console-load-notice p {
+  font-size: 11px;
+}
+.console-load-notice p {
+  color: #856933;
+  margin: 3px 0 0;
+}
+.console-load-notice button {
+  background: #0d3555;
+  border: 0;
+  border-radius: 4px;
+  color: #fff;
+  flex: 0 0 auto;
+  font-size: 11px;
+  padding: 7px 11px;
+}
+.workspace-placeholder {
+  max-width: 670px;
+  padding: 72px 35px;
+}
+.workspace-placeholder > p:not(.eyebrow) {
+  color: #667787;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 13px 0 0;
+}
+.workspace-placeholder-next {
+  border-left: 2px solid #d39a3c;
+  color: #526b80 !important;
+  margin-top: 26px !important;
+  padding-left: 11px;
+}
+.finding-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 22px;
+}
+.finding-list > button {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e0ddd7;
+  border-radius: 5px;
+  color: #40566c;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  padding: 14px 16px;
+  text-align: left;
+}
+.finding-list > button:hover,
+.finding-list > button.is-selected {
+  background: #fff9ec;
+  border-color: #d3ae70;
+}
+.finding-list > button > svg {
+  color: #b7742e;
+}
+.finding-list strong,
+.finding-list small {
+  display: block;
+}
+.finding-list strong {
+  color: #31495f;
+  font-size: 12px;
+}
+.finding-list small {
+  color: #778899;
+  font-size: 10px;
+  margin-top: 3px;
+}
+.finding-list-status {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 .identity-cell {
   align-items: center;
@@ -1116,13 +1367,41 @@ h1 {
     margin-top: 11px;
   }
   .filters {
-    overflow-x: auto;
+    align-items: stretch;
+    flex-wrap: wrap;
+    overflow: visible;
   }
   .filter-search {
     display: none;
   }
   .filters button {
-    flex: 0 0 auto;
+    border-left: 0;
+    flex: 1 1 calc(50% - 3px);
+    justify-content: center;
+  }
+  .filter-select {
+    border-left: 0;
+    flex: 1 1 calc(50% - 3px);
+    min-width: 0;
+  }
+  .filter-select select {
+    width: 100%;
+  }
+  .console-load-notice {
+    align-items: flex-start;
+    padding: 11px 16px;
+  }
+  .workspace-placeholder {
+    padding: 42px 16px;
+  }
+  .finding-list > button {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .finding-list-status {
+    display: none;
+  }
+  .command-overlay {
+    padding: 48px 14px 14px;
   }
   .tabs {
     gap: 18px;
