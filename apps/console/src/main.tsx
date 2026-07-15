@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Filter } from 'lucide-react';
 import { AppShell } from './app-shell/AppShell.js';
 import type { NavigationLabel } from './app-shell/navigation.js';
 import { ConsoleLoadNotice } from './components/ConsoleLoadNotice.js';
@@ -437,6 +437,9 @@ export function AegisConsole() {
     () => filteredIdentities.find((identity) => identity.id === location.identityId),
     [filteredIdentities, location.identityId],
   );
+  const visibleIdentityRange = filteredIdentities.length
+    ? `1–${filteredIdentities.length} of ${filteredIdentities.length}`
+    : '0–0 of 0';
 
   useEffect(() => {
     if (!filteredIdentities.length || selectedIdentity) return;
@@ -680,11 +683,8 @@ export function AegisConsole() {
         <div className="inventory-page">
           <div className="page-heading">
             <div>
-              <p className="eyebrow">Identity inventory</p>
               <h1>Identities</h1>
-              <p>Observed access across connected systems. Aegis does not change source access.</p>
             </div>
-            <span className="identity-count">{filteredIdentities.length} people</span>
           </div>
           <div className="tabs" role="tablist" aria-label="Identity kinds">
             <button aria-selected="true" role="tab" type="button">
@@ -709,29 +709,80 @@ export function AegisConsole() {
               Groups
             </button>
           </div>
-          <IdentityFilters
-            access={location.access}
-            onAccessChange={(access) => setLocation((current) => ({ ...current, access }))}
-            onClear={() =>
-              setLocation((current) => ({
-                ...current,
-                access: 'all',
-                platform: '',
-                query: '',
-                source: '',
-              }))
-            }
-            onPlatformChange={(platform) => setLocation((current) => ({ ...current, platform }))}
-            onSearchChange={(nextSearch) =>
-              setLocation((current) => ({ ...current, query: nextSearch }))
-            }
-            onSourceChange={(source) => setLocation((current) => ({ ...current, source }))}
-            platform={location.platform}
-            platforms={platforms}
-            search={search}
-            source={location.source}
-            sources={sources}
-          />
+          <div className="inventory-controls">
+            <IdentityFilters
+              access={location.access}
+              onAccessChange={(access) => setLocation((current) => ({ ...current, access }))}
+              onClear={() =>
+                setLocation((current) => ({
+                  ...current,
+                  access: 'all',
+                  platform: '',
+                  query: '',
+                  source: '',
+                }))
+              }
+              onPlatformChange={(platform) => setLocation((current) => ({ ...current, platform }))}
+              onSearchChange={(nextSearch) =>
+                setLocation((current) => ({ ...current, query: nextSearch }))
+              }
+              onSourceChange={(source) => setLocation((current) => ({ ...current, source }))}
+              platform={location.platform}
+              platforms={platforms}
+              search={search}
+              source={location.source}
+              sources={sources}
+            />
+            <div className="table-toolbar-actions" aria-label="Inventory actions">
+              <button
+                className="filter-action"
+                onClick={() =>
+                  document.querySelector<HTMLInputElement>('.filter-search input')?.focus()
+                }
+                type="button"
+              >
+                <Filter aria-hidden="true" size={15} strokeWidth={1.8} />
+                Filters
+              </button>
+              <button
+                aria-label="Download identity inventory"
+                className="icon-action"
+                onClick={() => {
+                  const rows = filteredIdentities.map((identity) =>
+                    [
+                      identity.displayName,
+                      identity.email,
+                      identity.source,
+                      identity.platform,
+                      identity.status,
+                      identity.privileged ? 'Yes' : 'No',
+                    ]
+                      .map((value) => `"${value.replaceAll('"', '""')}"`)
+                      .join(','),
+                  );
+                  const blob = new Blob(
+                    [
+                      ['Identity,Email,Source,Platform,Access status,Privileged', ...rows].join(
+                        '\n',
+                      ),
+                    ],
+                    {
+                      type: 'text/csv;charset=utf-8',
+                    },
+                  );
+                  const url = URL.createObjectURL(blob);
+                  const download = document.createElement('a');
+                  download.href = url;
+                  download.download = 'aegis-identities.csv';
+                  download.click();
+                  URL.revokeObjectURL(url);
+                }}
+                type="button"
+              >
+                <Download aria-hidden="true" size={17} strokeWidth={1.8} />
+              </button>
+            </div>
+          </div>
           <IdentityTable
             identities={filteredIdentities}
             loading={loading}
@@ -741,12 +792,28 @@ export function AegisConsole() {
             selectedIdentityId={selectedIdentity?.id}
           />
           <footer className="table-footer">
-            <span>Showing {filteredIdentities.length} identities</span>
+            <span>{visibleIdentityRange}</span>
             <span>
-              Rows per page: 25
-              <ChevronLeft aria-hidden="true" size={13} strokeWidth={1.8} />
+              <button aria-label="Previous page" disabled type="button">
+                <ChevronLeft aria-hidden="true" size={14} strokeWidth={1.8} />
+              </button>
               <strong>1</strong>
-              <ChevronRight aria-hidden="true" size={13} strokeWidth={1.8} />
+              <button aria-label="Page 2" type="button">
+                2
+              </button>
+              <button aria-label="Page 3" type="button">
+                3
+              </button>
+              <span aria-hidden="true">…</span>
+              <button aria-label="Page 15" type="button">
+                15
+              </button>
+              <button aria-label="Next page" type="button">
+                <ChevronRight aria-hidden="true" size={14} strokeWidth={1.8} />
+              </button>
+              <button className="rows-per-page" type="button">
+                10 / page
+              </button>
             </span>
           </footer>
         </div>

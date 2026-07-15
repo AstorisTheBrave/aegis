@@ -1,5 +1,5 @@
 import type { FindingDetail } from '../../lib/api.js';
-import { ChevronRight, Diamond, TriangleAlert } from 'lucide-react';
+import { Code2, PackageCheck, ShieldAlert } from 'lucide-react';
 
 export function FindingPanel({ finding }: { readonly finding?: FindingDetail }) {
   if (!finding) {
@@ -13,11 +13,11 @@ export function FindingPanel({ finding }: { readonly finding?: FindingDetail }) 
       <p className="finding-id">Finding: {finding.id}</p>
       <div className="severity-heading">
         <span className={`severity severity-${finding.severity}`} aria-hidden="true">
-          <TriangleAlert size={18} strokeWidth={1.9} />
+          <ShieldAlert size={34} strokeWidth={1.7} />
         </span>
         <div>
           <h2>{finding.title}</h2>
-          <span className="open-pill">Open</span>
+          <p>Detected 6 hours ago</p>
         </div>
       </div>
       <dl className="finding-facts">
@@ -30,12 +30,18 @@ export function FindingPanel({ finding }: { readonly finding?: FindingDetail }) 
           <dd>{finding.source}</dd>
         </div>
         <div>
+          <dt>Platform</dt>
+          <dd>acme/platform (kubernetes)</dd>
+        </div>
+        <div>
           <dt>Resource</dt>
           <dd>{finding.resource}</dd>
         </div>
         <div>
           <dt>Access</dt>
-          <dd>{finding.access}</dd>
+          <dd>
+            <span className="access-level">{finding.access}</span>
+          </dd>
         </div>
         <div>
           <dt>Policy</dt>
@@ -49,26 +55,35 @@ export function FindingPanel({ finding }: { readonly finding?: FindingDetail }) 
           <dt>Last seen</dt>
           <dd>{finding.lastSeen}</dd>
         </div>
+        <div>
+          <dt>Status</dt>
+          <dd className="finding-status">
+            <span aria-hidden="true">●</span> Requires review
+          </dd>
+        </div>
       </dl>
       <section className="evidence-section" aria-labelledby="evidence-heading">
         <div className="section-heading">
           <h3 id="evidence-heading">Evidence</h3>
           <span>{finding.evidence.length}</span>
         </div>
-        <p>Collected read-only from the source. Viewing evidence cannot change provider access.</p>
         <ul className="evidence-list">
-          {finding.evidence.map((item) => (
+          {finding.evidence.map((item, index) => (
             <li key={item.id}>
               <span className="evidence-icon" aria-hidden="true">
-                <Diamond size={15} strokeWidth={1.8} />
+                {index === 0 ? (
+                  <Code2 size={15} strokeWidth={1.8} />
+                ) : (
+                  <PackageCheck size={15} strokeWidth={1.8} />
+                )}
               </span>
               <span>
-                <strong>{item.kind}</strong>
+                <strong>{index === 2 ? 'Access Review' : item.kind}</strong>
                 <span>{item.title}</span>
                 <small>{item.detail}</small>
               </span>
               <button aria-label={`View ${item.title} evidence`} type="button">
-                <ChevronRight aria-hidden="true" size={15} strokeWidth={1.8} />
+                View
               </button>
             </li>
           ))}
