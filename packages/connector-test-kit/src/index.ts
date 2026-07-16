@@ -20,6 +20,7 @@ export interface FixtureBundle {
 
 const sensitiveKey = /authorization|cookie|secret|password|token|api[-_]?key/i;
 const tokenLike = /(?:bearer\s+\S+|gh[pousr]_[a-zA-Z0-9_-]+|xox[baprs]-[a-zA-Z0-9-]+)/gi;
+const absoluteUrl = /^[a-z][a-z\d+.-]*:/i;
 
 export function redactFixture<T>(value: T): T {
   if (Array.isArray(value)) return value.map(redactFixture) as T;
@@ -37,18 +38,34 @@ export function redactFixture<T>(value: T): T {
 
 export function redactEndpointUrl(value: string): string {
   const redacted = redactTokenLike(value);
-  const isPathRelative = redacted.startsWith('/');
-  const isQueryRelative = redacted.startsWith('?');
-  const isRelative = isPathRelative || isQueryRelative;
-  const url = isRelative ? new URL(redacted, 'https://redaction.invalid') : new URL(redacted);
+  const reference = classifyUrlReference(redacted);
+  if (!reference) throw new TypeError('Value is not a URL reference');
+
+  const url =
+    reference.kind === 'absolute'
+      ? new URL(redacted)
+      : new URL(redacted, 'https://redaction.invalid');
   url.username = '';
   url.password = '';
   for (const [key] of url.searchParams) {
     url.searchParams.set(key, 'REDACTED');
   }
   url.hash = '';
-  if (isQueryRelative) return url.search;
-  return isPathRelative ? `${url.pathname}${url.search}` : url.toString();
+
+  switch (reference.kind) {
+    case 'absolute':
+      return url.toString();
+    case 'protocol-relative':
+      return `//${url.host}${url.pathname}${url.search}`;
+    case 'root-relative':
+      return `${url.pathname}${url.search}`;
+    case 'query-relative':
+      return url.search;
+    case 'path-relative':
+      return `${reference.path}${url.search}`;
+    case 'fragment-relative':
+      return '';
+  }
 }
 
 export function certifyReadOnlyConnector(
@@ -95,6 +112,26 @@ function redactString(value: string): string {
 
 function redactTokenLike(value: string): string {
   return value.replace(tokenLike, 'REDACTED');
+}
+
+type UrlReference =
+  | {
+      readonly kind:
+        'absolute' | 'protocol-relative' | 'root-relative' | 'query-relative' | 'fragment-relative';
+    }
+  | { readonly kind: 'path-relative'; readonly path: string };
+
+function classifyUrlReference(value: string): UrlReference | undefined {
+  if (absoluteUrl.test(value)) return { kind: 'absolute' };
+  if (/\s/.test(value)) return undefined;
+  if (value.startsWith('//')) return { kind: 'protocol-relative' };
+  if (value.startsWith('/')) return { kind: 'root-relative' };
+  if (value.startsWith('?')) return { kind: 'query-relative' };
+  if (value.startsWith('#')) return { kind: 'fragment-relative' };
+
+  const separator = value.search(/[?#]/);
+  if (separator <= 0) return undefined;
+  return { kind: 'path-relative', path: value.slice(0, separator) };
 }
 
 export function assertConformantGraphBatch(batch: GraphSyncBatch): void {

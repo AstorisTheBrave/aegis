@@ -31,7 +31,7 @@ describe('connector test kit', () => {
           responseBody: {
             token: 'xoxb-secret',
             note: 'Bearer eyJ.fixture.secret',
-            next: '/users?access_token=top-secret&auth=opaque-secret&cursor=ghp_secret&continuation=next',
+            next: 'users?access_token=top-secret&auth=opaque-secret&cursor=ghp_secret&continuation=next',
             users: [],
           },
         },
@@ -45,7 +45,7 @@ describe('connector test kit', () => {
           responseBody: {
             token: 'REDACTED',
             note: 'REDACTED',
-            next: '/users?access_token=REDACTED&auth=REDACTED&cursor=REDACTED&continuation=REDACTED',
+            next: 'users?access_token=REDACTED&auth=REDACTED&cursor=REDACTED&continuation=REDACTED',
           },
         },
       ],
@@ -59,6 +59,14 @@ describe('connector test kit', () => {
     });
     expect(redactEndpointUrl('?auth=opaque-secret&cursor=continue#fragment')).toBe(
       '?auth=REDACTED&cursor=REDACTED',
+    );
+    expect(redactEndpointUrl('/users?access_token=top-secret')).toBe(
+      '/users?access_token=REDACTED',
+    );
+    expect(redactEndpointUrl('./users?auth=opaque-secret')).toBe('./users?auth=REDACTED');
+    expect(redactEndpointUrl('../users?cursor=ghp_secret')).toBe('../users?cursor=REDACTED');
+    expect(redactEndpointUrl('//api.example.test/users?api_key=opaque-secret')).toBe(
+      '//api.example.test/users?api_key=REDACTED',
     );
     const provider = createMockProvider(fixture);
     expect(
