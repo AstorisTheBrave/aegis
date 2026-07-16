@@ -22,6 +22,7 @@ const sensitiveKey = /authorization|cookie|secret|password|token|api[-_]?key/i;
 const sensitiveUrlKey =
   /authorization|cookie|secret|password|token|api[-_]?key|signature|sig|x-amz-(credential|signature|security-token)/i;
 const tokenLike = /(?:bearer\s+\S+|gh[pousr]_[a-zA-Z0-9_-]+|xox[baprs]-[a-zA-Z0-9-]+)/gi;
+const credentialLike = /(?:bearer\s+\S+|gh[pousr]_[a-zA-Z0-9_-]+|xox[baprs]-[a-zA-Z0-9-]+)/i;
 
 export function redactFixture<T>(value: T): T {
   if (Array.isArray(value)) return value.map(redactFixture) as T;
@@ -41,8 +42,10 @@ export function redactEndpointUrl(value: string): string {
   const url = new URL(value);
   url.username = '';
   url.password = '';
-  for (const [key] of url.searchParams) {
-    if (sensitiveUrlKey.test(key)) url.searchParams.set(key, 'REDACTED');
+  for (const [key, queryValue] of url.searchParams) {
+    if (sensitiveUrlKey.test(key) || credentialLike.test(queryValue)) {
+      url.searchParams.set(key, 'REDACTED');
+    }
   }
   return url.toString();
 }
