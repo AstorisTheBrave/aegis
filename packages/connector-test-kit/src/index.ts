@@ -20,7 +20,7 @@ export interface FixtureBundle {
 
 const sensitiveKey = /authorization|cookie|secret|password|token|api[-_]?key/i;
 const sensitiveUrlKey =
-  /authorization|cookie|secret|password|token|api[-_]?key|signature|sig|x-amz-(credential|signature|security-token)/i;
+  /authorization|cookie|secret|password|token|api[-_]?key|signature|sig|x-amz-(credential|signature|security-token)|^auth$/i;
 const tokenLike = /(?:bearer\s+\S+|gh[pousr]_[a-zA-Z0-9_-]+|xox[baprs]-[a-zA-Z0-9-]+)/gi;
 const credentialLike = /(?:bearer\s+\S+|gh[pousr]_[a-zA-Z0-9_-]+|xox[baprs]-[a-zA-Z0-9-]+)/i;
 
