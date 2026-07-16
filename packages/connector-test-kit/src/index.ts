@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { ConnectorCertification } from '@aegis/extension-registry';
 import { canonicalJson } from '@aegis/extension-registry';
 import { parseManifest, type ConnectorManifest } from '@open-saas-governance/connector-protocol';
+import type { GraphSyncBatch } from '@open-saas-governance/access-graph';
 
 export interface RecordedHttpExchange {
   readonly method: string;
@@ -44,6 +45,9 @@ export function certifyReadOnlyConnector(
   if (!methods.every((method) => method === 'GET' || method === 'HEAD')) {
     throw new Error('Fixture contains a non-read-only provider request');
   }
+  if (fixture.exchanges.some((exchange) => new URL(exchange.url).protocol !== 'https:')) {
+    throw new Error('Fixture contains a non-HTTPS provider request');
+  }
   const redacted = redactFixture(fixture);
   if (canonicalJson(redacted).includes('Bearer ') || canonicalJson(redacted).includes('xox')) {
     throw new Error('Fixture redaction did not remove a credential-like value');
@@ -61,6 +65,20 @@ export function certifyReadOnlyConnector(
     },
     certifiedAt,
   };
+}
+
+export function assertConformantGraphBatch(batch: GraphSyncBatch): void {
+  for (const event of batch.events) {
+    if (
+      event.entity.tenantId !== batch.tenantId ||
+      event.entity.connectorId !== batch.connectorId
+    ) {
+      throw new Error('Connector event does not match its sync batch provenance');
+    }
+    if (!event.entity.observedAt || !event.entity.externalId || !event.entity.attributes.source) {
+      throw new Error('Connector event is missing provenance or observation data');
+    }
+  }
 }
 
 export function createMockProvider(fixture: FixtureBundle): typeof fetch {

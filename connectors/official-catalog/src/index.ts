@@ -65,6 +65,34 @@ export const officialConnectorProfiles: readonly OfficialConnectorProfile[] = [
     ['read content capability'],
     ['/v1/users', '/v1/search'],
   ),
+  profile(
+    'scim-2',
+    'SCIM 2.0',
+    ['OAUTH2', 'API_TOKEN'],
+    ['Users.read', 'Groups.read'],
+    ['/Users', '/Groups'],
+  ),
+  profile(
+    'azure-rbac',
+    'Azure RBAC',
+    ['OAUTH2'],
+    ['roleAssignments/read', 'roleDefinitions/read'],
+    ['/subscriptions/:id/providers/Microsoft.Authorization/roleAssignments'],
+  ),
+  profile(
+    'gcp-iam',
+    'Google Cloud IAM',
+    ['OAUTH2'],
+    ['cloudasset.assets.searchAllIamPolicies'],
+    ['/v1p7beta1/:scope:searchAllIamPolicies'],
+  ),
+  profile(
+    'kubernetes',
+    'Kubernetes',
+    ['API_TOKEN'],
+    ['get', 'list', 'watch'],
+    ['/api/v1/serviceaccounts', '/apis/rbac.authorization.k8s.io/v1/clusterrolebindings'],
+  ),
 ];
 
 function profile(

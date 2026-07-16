@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { certifyReadOnlyConnector, createMockProvider, redactFixture } from '../src/index.js';
+import {
+  assertConformantGraphBatch,
+  certifyReadOnlyConnector,
+  createMockProvider,
+  redactFixture,
+} from '../src/index.js';
 
 const manifest = {
   protocolVersion: '1.0.0' as const,
@@ -58,5 +63,32 @@ describe('connector test kit', () => {
     await expect(provider('https://api.example.test/users')).rejects.toThrow(
       'Fixture replay mismatch',
     );
+  });
+
+  it('rejects missing graph provenance', () => {
+    expect(() =>
+      assertConformantGraphBatch({
+        tenantId: 'one',
+        connectorId: 'two',
+        startedAt: 'now',
+        completedAt: 'now',
+        events: [
+          {
+            type: 'identity.upsert',
+            entity: {
+              kind: 'identity',
+              tenantId: 'other',
+              id: 'id',
+              connectorId: 'two',
+              externalId: 'external',
+              displayName: 'Name',
+              status: 'ACTIVE',
+              observedAt: 'now',
+              attributes: { source: 'Fixture' },
+            },
+          },
+        ],
+      }),
+    ).toThrow('provenance');
   });
 });

@@ -1,4 +1,5 @@
 import type { GraphSyncBatch, GraphSyncEvent } from '@open-saas-governance/access-graph';
+import { ReadOnlyProviderClient } from '@aegis/connector-runtime';
 
 type User = { id: number; login: string; type: string };
 type Repository = {
@@ -136,24 +137,16 @@ export class GitHubConnector {
   }
 
   private async list<T>(path: string, token: string): Promise<T[]> {
-    const values: T[] = [];
-    let url: string | undefined =
-      `https://api.github.com${path}${path.includes('?') ? '&' : '?'}per_page=100`;
-    while (url) {
-      const response = await this.fetcher(url, {
-        headers: {
-          Accept: 'application/vnd.github+json',
-          Authorization: `Bearer ${token}`,
-          'X-GitHub-Api-Version': '2026-03-10',
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`GitHub request failed: ${response.status} ${response.statusText}`);
-      }
-      values.push(...((await response.json()) as T[]));
-      url = next(response.headers.get('link'));
-    }
-    return values;
+    const client = new ReadOnlyProviderClient({
+      origin: 'https://api.github.com',
+      fetcher: this.fetcher,
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${token}`,
+        'X-GitHub-Api-Version': '2026-03-10',
+      },
+    });
+    return client.list<T>(`${path}${path.includes('?') ? '&' : '?'}per_page=100`);
   }
 }
 
@@ -427,8 +420,4 @@ function highestPermission(permissions: Record<string, boolean> | undefined): st
           : permissions?.pull
             ? 'read'
             : 'read';
-}
-
-function next(link: string | null): string | undefined {
-  return link?.match(/<([^>]+)>; rel="next"/)?.[1];
 }

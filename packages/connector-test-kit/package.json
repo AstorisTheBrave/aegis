@@ -13,6 +13,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@open-saas-governance/access-graph": "workspace:*",
     "@aegis/extension-registry": "workspace:*",
     "@open-saas-governance/connector-protocol": "workspace:*"
   },
