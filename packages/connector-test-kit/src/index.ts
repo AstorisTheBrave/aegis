@@ -19,10 +19,7 @@ export interface FixtureBundle {
 }
 
 const sensitiveKey = /authorization|cookie|secret|password|token|api[-_]?key/i;
-const sensitiveUrlKey =
-  /authorization|cookie|secret|password|token|api[-_]?key|signature|sig|x-amz-(credential|signature|security-token)|^auth$/i;
 const tokenLike = /(?:bearer\s+\S+|gh[pousr]_[a-zA-Z0-9_-]+|xox[baprs]-[a-zA-Z0-9-]+)/gi;
-const credentialLike = /(?:bearer\s+\S+|gh[pousr]_[a-zA-Z0-9_-]+|xox[baprs]-[a-zA-Z0-9-]+)/i;
 
 export function redactFixture<T>(value: T): T {
   if (Array.isArray(value)) return value.map(redactFixture) as T;
@@ -40,16 +37,18 @@ export function redactFixture<T>(value: T): T {
 
 export function redactEndpointUrl(value: string): string {
   const redacted = redactTokenLike(value);
-  const isRelative = redacted.startsWith('/');
+  const isPathRelative = redacted.startsWith('/');
+  const isQueryRelative = redacted.startsWith('?');
+  const isRelative = isPathRelative || isQueryRelative;
   const url = isRelative ? new URL(redacted, 'https://redaction.invalid') : new URL(redacted);
   url.username = '';
   url.password = '';
-  for (const [key, queryValue] of url.searchParams) {
-    if (sensitiveUrlKey.test(key) || credentialLike.test(queryValue)) {
-      url.searchParams.set(key, 'REDACTED');
-    }
+  for (const [key] of url.searchParams) {
+    url.searchParams.set(key, 'REDACTED');
   }
-  return isRelative ? `${url.pathname}${url.search}${url.hash}` : url.toString();
+  url.hash = '';
+  if (isQueryRelative) return url.search;
+  return isPathRelative ? `${url.pathname}${url.search}` : url.toString();
 }
 
 export function certifyReadOnlyConnector(

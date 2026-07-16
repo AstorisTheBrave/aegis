@@ -3,6 +3,7 @@ import {
   assertConformantGraphBatch,
   certifyReadOnlyConnector,
   createMockProvider,
+  redactEndpointUrl,
   redactFixture,
 } from '../src/index.js';
 
@@ -39,12 +40,12 @@ describe('connector test kit', () => {
     expect(redactFixture(fixture)).toMatchObject({
       exchanges: [
         {
-          url: 'https://api.example.test/users/REDACTED?access_token=REDACTED&sig=REDACTED&X-Amz-Credential=REDACTED&auth=REDACTED&cursor=REDACTED&continuation=continue#REDACTED',
+          url: 'https://api.example.test/users/REDACTED?access_token=REDACTED&sig=REDACTED&X-Amz-Credential=REDACTED&auth=REDACTED&cursor=REDACTED&continuation=REDACTED',
           requestHeaders: { Authorization: 'REDACTED' },
           responseBody: {
             token: 'REDACTED',
             note: 'REDACTED',
-            next: '/users?access_token=REDACTED&auth=REDACTED&cursor=REDACTED&continuation=next',
+            next: '/users?access_token=REDACTED&auth=REDACTED&cursor=REDACTED&continuation=REDACTED',
           },
         },
       ],
@@ -53,9 +54,12 @@ describe('connector test kit', () => {
       noWriteProof: true,
       requestMethods: ['GET'],
       endpointInventory: [
-        'https://api.example.test/users/REDACTED?access_token=REDACTED&sig=REDACTED&X-Amz-Credential=REDACTED&auth=REDACTED&cursor=REDACTED&continuation=continue#REDACTED',
+        'https://api.example.test/users/REDACTED?access_token=REDACTED&sig=REDACTED&X-Amz-Credential=REDACTED&auth=REDACTED&cursor=REDACTED&continuation=REDACTED',
       ],
     });
+    expect(redactEndpointUrl('?auth=opaque-secret&cursor=continue#fragment')).toBe(
+      '?auth=REDACTED&cursor=REDACTED',
+    );
     const provider = createMockProvider(fixture);
     expect(
       (
