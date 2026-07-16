@@ -27,7 +27,12 @@ describe('connector test kit', () => {
           url: 'https://api.example.test/users?access_token=top-secret&sig=signed-secret&X-Amz-Credential=aws-secret&auth=opaque-secret&cursor=ghp_secret&continuation=continue',
           requestHeaders: { Authorization: 'Bearer ghp_secret' },
           responseStatus: 200,
-          responseBody: { token: 'xoxb-secret', note: 'Bearer eyJ.fixture.secret', users: [] },
+          responseBody: {
+            token: 'xoxb-secret',
+            note: 'Bearer eyJ.fixture.secret',
+            next: '/users?access_token=top-secret&auth=opaque-secret&cursor=ghp_secret&continuation=next',
+            users: [],
+          },
         },
       ],
     };
@@ -36,7 +41,11 @@ describe('connector test kit', () => {
         {
           url: 'https://api.example.test/users?access_token=REDACTED&sig=REDACTED&X-Amz-Credential=REDACTED&auth=REDACTED&cursor=REDACTED&continuation=continue',
           requestHeaders: { Authorization: 'REDACTED' },
-          responseBody: { token: 'REDACTED', note: 'REDACTED' },
+          responseBody: {
+            token: 'REDACTED',
+            note: 'REDACTED',
+            next: '/users?access_token=REDACTED&auth=REDACTED&cursor=REDACTED&continuation=next',
+          },
         },
       ],
     });

@@ -39,7 +39,8 @@ export function redactFixture<T>(value: T): T {
 }
 
 export function redactEndpointUrl(value: string): string {
-  const url = new URL(value);
+  const isRelative = value.startsWith('/');
+  const url = isRelative ? new URL(value, 'https://redaction.invalid') : new URL(value);
   url.username = '';
   url.password = '';
   for (const [key, queryValue] of url.searchParams) {
@@ -47,7 +48,7 @@ export function redactEndpointUrl(value: string): string {
       url.searchParams.set(key, 'REDACTED');
     }
   }
-  return url.toString();
+  return isRelative ? `${url.pathname}${url.search}${url.hash}` : url.toString();
 }
 
 export function certifyReadOnlyConnector(
