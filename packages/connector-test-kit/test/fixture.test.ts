@@ -24,7 +24,7 @@ describe('connector test kit', () => {
       exchanges: [
         {
           method: 'GET',
-          url: 'https://api.example.test/users?access_token=top-secret&cursor=continue',
+          url: 'https://api.example.test/users?access_token=top-secret&sig=signed-secret&X-Amz-Credential=aws-secret&cursor=continue',
           requestHeaders: { Authorization: 'Bearer ghp_secret' },
           responseStatus: 200,
           responseBody: { token: 'xoxb-secret', note: 'Bearer eyJ.fixture.secret', users: [] },
@@ -34,7 +34,7 @@ describe('connector test kit', () => {
     expect(redactFixture(fixture)).toMatchObject({
       exchanges: [
         {
-          url: 'https://api.example.test/users?access_token=REDACTED&cursor=continue',
+          url: 'https://api.example.test/users?access_token=REDACTED&sig=REDACTED&X-Amz-Credential=REDACTED&cursor=continue',
           requestHeaders: { Authorization: 'REDACTED' },
           responseBody: { token: 'REDACTED', note: 'REDACTED' },
         },
@@ -43,12 +43,17 @@ describe('connector test kit', () => {
     expect(certifyReadOnlyConnector(manifest, fixture, '2026-07-14T00:00:00.000Z')).toMatchObject({
       noWriteProof: true,
       requestMethods: ['GET'],
-      endpointInventory: ['https://api.example.test/users?access_token=REDACTED&cursor=continue'],
+      endpointInventory: [
+        'https://api.example.test/users?access_token=REDACTED&sig=REDACTED&X-Amz-Credential=REDACTED&cursor=continue',
+      ],
     });
     const provider = createMockProvider(fixture);
     expect(
-      (await provider('https://api.example.test/users?access_token=top-secret&cursor=continue'))
-        .status,
+      (
+        await provider(
+          'https://api.example.test/users?access_token=top-secret&sig=signed-secret&X-Amz-Credential=aws-secret&cursor=continue',
+        )
+      ).status,
     ).toBe(200);
   });
 

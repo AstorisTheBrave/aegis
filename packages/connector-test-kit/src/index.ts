@@ -19,6 +19,8 @@ export interface FixtureBundle {
 }
 
 const sensitiveKey = /authorization|cookie|secret|password|token|api[-_]?key/i;
+const sensitiveUrlKey =
+  /authorization|cookie|secret|password|token|api[-_]?key|signature|sig|x-amz-(credential|signature|security-token)/i;
 const tokenLike = /(?:bearer\s+\S+|gh[pousr]_[a-zA-Z0-9_-]+|xox[baprs]-[a-zA-Z0-9-]+)/gi;
 
 export function redactFixture<T>(value: T): T {
@@ -40,7 +42,7 @@ export function redactEndpointUrl(value: string): string {
   url.username = '';
   url.password = '';
   for (const [key] of url.searchParams) {
-    if (sensitiveKey.test(key)) url.searchParams.set(key, 'REDACTED');
+    if (sensitiveUrlKey.test(key)) url.searchParams.set(key, 'REDACTED');
   }
   return url.toString();
 }
