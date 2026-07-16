@@ -13,6 +13,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@aegis/connector-runtime": "workspace:*",
     "@open-saas-governance/access-graph": "workspace:*"
   },
   "devDependencies": {

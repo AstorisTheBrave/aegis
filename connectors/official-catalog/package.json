@@ -12,6 +12,10 @@
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
+  "dependencies": {
+    "@aegis/connector-test-kit": "workspace:*",
+    "@open-saas-governance/connector-protocol": "workspace:*"
+  },
   "devDependencies": {
     "vitest": "4.1.10"
   }

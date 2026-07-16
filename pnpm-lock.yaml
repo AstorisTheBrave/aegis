@@ -151,8 +151,51 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
+  connectors/atlassian:
+    dependencies:
+      '@aegis/connector-runtime':
+        specifier: workspace:*
+        version: link:../../packages/connector-runtime
+    devDependencies:
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
+  connectors/aws-iam:
+    dependencies:
+      '@aegis/connector-runtime':
+        specifier: workspace:*
+        version: link:../../packages/connector-runtime
+    devDependencies:
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
+  connectors/azure-rbac:
+    dependencies:
+      '@aegis/connector-runtime':
+        specifier: workspace:*
+        version: link:../../packages/connector-runtime
+    devDependencies:
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
+  connectors/gcp-iam:
+    dependencies:
+      '@aegis/connector-runtime':
+        specifier: workspace:*
+        version: link:../../packages/connector-runtime
+    devDependencies:
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
   connectors/github:
     dependencies:
+      '@aegis/connector-runtime':
+        specifier: workspace:*
+        version: link:../../packages/connector-runtime
       '@open-saas-governance/access-graph':
         specifier: workspace:*
         version: link:../../packages/access-graph
@@ -164,7 +207,84 @@ importers:
         specifier: 4.1.10
         version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
 
+  connectors/gitlab:
+    dependencies:
+      '@aegis/connector-runtime':
+        specifier: workspace:*
+        version: link:../../packages/connector-runtime
+    devDependencies:
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
+  connectors/google-workspace:
+    dependencies:
+      '@aegis/connector-runtime':
+        specifier: workspace:*
+        version: link:../../packages/connector-runtime
+    devDependencies:
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
+  connectors/kubernetes:
+    dependencies:
+      '@aegis/connector-runtime':
+        specifier: workspace:*
+        version: link:../../packages/connector-runtime
+    devDependencies:
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
+  connectors/microsoft-entra-id:
+    dependencies:
+      '@aegis/connector-runtime':
+        specifier: workspace:*
+        version: link:../../packages/connector-runtime
+    devDependencies:
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
   connectors/official-catalog:
+    dependencies:
+      '@aegis/connector-test-kit':
+        specifier: workspace:*
+        version: link:../../packages/connector-test-kit
+      '@open-saas-governance/connector-protocol':
+        specifier: workspace:*
+        version: link:../../packages/connector-protocol
+    devDependencies:
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
+  connectors/okta:
+    dependencies:
+      '@aegis/connector-runtime':
+        specifier: workspace:*
+        version: link:../../packages/connector-runtime
+    devDependencies:
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
+  connectors/scim:
+    dependencies:
+      '@aegis/connector-runtime':
+        specifier: workspace:*
+        version: link:../../packages/connector-runtime
+    devDependencies:
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
+  connectors/slack:
+    dependencies:
+      '@aegis/connector-runtime':
+        specifier: workspace:*
+        version: link:../../packages/connector-runtime
     devDependencies:
       vitest:
         specifier: 4.1.10
@@ -275,11 +395,24 @@ importers:
         specifier: 4.1.10
         version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
 
+  packages/connector-runtime:
+    dependencies:
+      '@open-saas-governance/access-graph':
+        specifier: workspace:*
+        version: link:../access-graph
+    devDependencies:
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@24.1.0)(jsdom@29.1.1)(vite@8.1.4(@types/node@24.1.0)(esbuild@0.28.1))
+
   packages/connector-test-kit:
     dependencies:
       '@aegis/extension-registry':
         specifier: workspace:*
         version: link:../extension-registry
+      '@open-saas-governance/access-graph':
+        specifier: workspace:*
+        version: link:../access-graph
       '@open-saas-governance/connector-protocol':
         specifier: workspace:*
         version: link:../connector-protocol

@@ -1,5 +1,12 @@
 pub const PROTOCOL_VERSION: &str = "1.0.0";
 
+#[derive(Debug, PartialEq)]
+pub struct Checkpoint<'a> { pub cursor: Option<&'a str>, pub watermark: Option<&'a str> }
+
+pub fn retry_for_status(status: u16, retry_after_ms: u64) -> Option<(&'static str, u64)> {
+    match status { 429 => Some(("rate_limit", retry_after_ms.max(250))), 502 | 503 | 504 => Some(("transient_failure", retry_after_ms.max(250))), _ => None }
+}
+
 pub struct Manifest<'a> {
     pub protocol_version: &'a str,
     pub id: &'a str,
@@ -39,5 +46,6 @@ mod tests {
         let manifest = Manifest { protocol_version: PROTOCOL_VERSION, id: "example-connector", capabilities: &["IDENTITY_READ", "ACCESS_GRAPH_READ"], minimum_scopes: &["users.read"] };
         assert!(validate_read_only_manifest(&manifest).is_ok());
         assert_eq!(redact_fixture("Bearer secret"), "REDACTED");
+        assert_eq!(retry_for_status(429, 0), Some(("rate_limit", 250)));
     }
 }

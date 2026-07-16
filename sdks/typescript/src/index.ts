@@ -13,6 +13,33 @@ export interface ConnectorManifest {
   readonly minimumScopes: readonly string[];
 }
 
+export interface ConnectorCheckpoint {
+  readonly cursor?: string;
+  readonly watermark?: string;
+}
+export interface ConnectorEvent {
+  readonly type: 'identity.upsert' | 'resource.upsert' | 'entitlement.upsert' | 'grant.upsert';
+  readonly externalId: string;
+  readonly observedAt: string;
+}
+export interface RetryDirective {
+  readonly retryAfterMs: number;
+  readonly reason: 'rate_limit' | 'transient_failure';
+}
+export function checkpoint(cursor?: string, watermark?: string): ConnectorCheckpoint {
+  return { ...(cursor ? { cursor } : {}), ...(watermark ? { watermark } : {}) };
+}
+export function retryForStatus(
+  status: number,
+  retryAfterSeconds?: number,
+): RetryDirective | undefined {
+  if (status !== 429 && ![502, 503, 504].includes(status)) return undefined;
+  return {
+    reason: status === 429 ? 'rate_limit' : 'transient_failure',
+    retryAfterMs: Math.max(0, retryAfterSeconds ?? 0.25) * 1000,
+  };
+}
+
 export function assertReadOnlyManifest(manifest: ConnectorManifest): void {
   if (manifest.protocolVersion !== protocolVersion)
     throw new Error('Unsupported connector protocol version');

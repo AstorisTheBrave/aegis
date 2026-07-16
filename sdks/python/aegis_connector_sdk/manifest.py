@@ -4,6 +4,16 @@ PROTOCOL_VERSION = "1.0.0"
 _READ_ONLY = {"IDENTITY_READ", "ACCESS_GRAPH_READ", "USAGE_READ"}
 
 
+def checkpoint(cursor=None, watermark=None):
+    return {key: value for key, value in {"cursor": cursor, "watermark": watermark}.items() if value}
+
+
+def retry_for_status(status, retry_after_seconds=None):
+    if status not in {429, 502, 503, 504}:
+        return None
+    return {"reason": "rate_limit" if status == 429 else "transient_failure", "retryAfterMs": int(max(0.25, retry_after_seconds or 0.25) * 1000)}
+
+
 def validate_read_only_manifest(manifest: dict) -> None:
     if manifest.get("protocolVersion") != PROTOCOL_VERSION:
         raise ValueError("unsupported connector protocol version")

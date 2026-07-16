@@ -8,6 +8,16 @@ import (
 
 const ProtocolVersion = "1.0.0"
 
+type Checkpoint struct { Cursor string; Watermark string }
+type RetryDirective struct { RetryAfterMs int; Reason string }
+
+func RetryForStatus(status int, retryAfterMs int) *RetryDirective {
+	if status != 429 && status != 502 && status != 503 && status != 504 { return nil }
+	if retryAfterMs < 250 { retryAfterMs = 250 }
+	reason := "transient_failure"; if status == 429 { reason = "rate_limit" }
+	return &RetryDirective{RetryAfterMs: retryAfterMs, Reason: reason}
+}
+
 type Manifest struct {
 	ProtocolVersion string
 	ID              string
