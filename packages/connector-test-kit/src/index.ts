@@ -19,11 +19,11 @@ export interface FixtureBundle {
 }
 
 const sensitiveKey = /authorization|cookie|secret|password|token|api[-_]?key/i;
-const tokenLike = /(?:bearer\s+|gh[pousr]_[a-zA-Z0-9_-]+|xox[baprs]-[a-zA-Z0-9-]+)/gi;
+const tokenLike = /(?:bearer\s+\S+|gh[pousr]_[a-zA-Z0-9_-]+|xox[baprs]-[a-zA-Z0-9-]+)/gi;
 
 export function redactFixture<T>(value: T): T {
   if (Array.isArray(value)) return value.map(redactFixture) as T;
-  if (typeof value === 'string') return value.replace(tokenLike, 'REDACTED') as T;
+  if (typeof value === 'string') return redactString(value) as T;
   if (value && typeof value === 'object') {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>).map(([key, nested]) => [
@@ -33,6 +33,16 @@ export function redactFixture<T>(value: T): T {
     ) as T;
   }
   return value;
+}
+
+export function redactEndpointUrl(value: string): string {
+  const url = new URL(value);
+  url.username = '';
+  url.password = '';
+  for (const [key] of url.searchParams) {
+    if (sensitiveKey.test(key)) url.searchParams.set(key, 'REDACTED');
+  }
+  return url.toString();
 }
 
 export function certifyReadOnlyConnector(
@@ -56,7 +66,9 @@ export function certifyReadOnlyConnector(
     status: 'fixture_certified',
     fixtureDigest: `sha256:${createHash('sha256').update(canonicalJson(redacted)).digest('hex')}`,
     requestMethods: methods as ('GET' | 'HEAD')[],
-    endpointInventory: [...new Set(fixture.exchanges.map((exchange) => exchange.url))].sort(),
+    endpointInventory: [
+      ...new Set(fixture.exchanges.map((exchange) => redactEndpointUrl(exchange.url))),
+    ].sort(),
     noWriteProof: true,
     scopeReview: {
       status: 'self_attested',
@@ -65,6 +77,15 @@ export function certifyReadOnlyConnector(
     },
     certifiedAt,
   };
+}
+
+function redactString(value: string): string {
+  const redacted = value.replace(tokenLike, 'REDACTED');
+  try {
+    return redactEndpointUrl(redacted);
+  } catch {
+    return redacted;
+  }
 }
 
 export function assertConformantGraphBatch(batch: GraphSyncBatch): void {

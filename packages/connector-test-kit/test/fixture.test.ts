@@ -24,24 +24,32 @@ describe('connector test kit', () => {
       exchanges: [
         {
           method: 'GET',
-          url: 'https://api.example.test/users',
+          url: 'https://api.example.test/users?access_token=top-secret&cursor=continue',
           requestHeaders: { Authorization: 'Bearer ghp_secret' },
           responseStatus: 200,
-          responseBody: { token: 'xoxb-secret', users: [] },
+          responseBody: { token: 'xoxb-secret', note: 'Bearer eyJ.fixture.secret', users: [] },
         },
       ],
     };
     expect(redactFixture(fixture)).toMatchObject({
       exchanges: [
-        { requestHeaders: { Authorization: 'REDACTED' }, responseBody: { token: 'REDACTED' } },
+        {
+          url: 'https://api.example.test/users?access_token=REDACTED&cursor=continue',
+          requestHeaders: { Authorization: 'REDACTED' },
+          responseBody: { token: 'REDACTED', note: 'REDACTED' },
+        },
       ],
     });
     expect(certifyReadOnlyConnector(manifest, fixture, '2026-07-14T00:00:00.000Z')).toMatchObject({
       noWriteProof: true,
       requestMethods: ['GET'],
+      endpointInventory: ['https://api.example.test/users?access_token=REDACTED&cursor=continue'],
     });
     const provider = createMockProvider(fixture);
-    expect((await provider('https://api.example.test/users')).status).toBe(200);
+    expect(
+      (await provider('https://api.example.test/users?access_token=top-secret&cursor=continue'))
+        .status,
+    ).toBe(200);
   });
 
   it('rejects write recordings and replay mismatches', async () => {
