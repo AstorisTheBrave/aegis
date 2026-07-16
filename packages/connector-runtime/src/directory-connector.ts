@@ -20,6 +20,7 @@ export interface DirectoryConnectorDefinition {
   readonly users: (payload: unknown) => readonly DirectoryIdentity[];
   readonly groups: (payload: unknown) => readonly DirectoryGroup[];
   readonly memberships: (group: DirectoryGroup, payload: unknown) => readonly DirectoryMembership[];
+  readonly nextPath?: (payload: unknown, currentPath: string) => string | undefined;
 }
 
 export class DirectoryApiConnector {
@@ -34,19 +35,23 @@ export class DirectoryApiConnector {
       headers: this.definition.headers(input),
       fetcher: this.fetcher,
     });
-    const [usersPayload, groupsPayload] = await Promise.all([
-      client.getJson<unknown>(this.definition.usersPath),
-      client.getJson<unknown>(this.definition.groupsPath),
+    const [identities, groups] = await Promise.all([
+      client.listPages(this.definition.usersPath, (payload, currentPath) => ({
+        values: this.definition.users(payload),
+        nextPath: this.definition.nextPath?.(payload, currentPath),
+      })),
+      client.listPages(this.definition.groupsPath, (payload, currentPath) => ({
+        values: this.definition.groups(payload),
+        nextPath: this.definition.nextPath?.(payload, currentPath),
+      })),
     ]);
-    const identities = this.definition.users(usersPayload);
-    const groups = this.definition.groups(groupsPayload);
     const memberships = (
       await Promise.all(
-        groups.map(async (group) =>
-          this.definition.memberships(
-            group,
-            await client.getJson<unknown>(this.definition.membersPath(group)),
-          ),
+        groups.map((group) =>
+          client.listPages(this.definition.membersPath(group), (payload, currentPath) => ({
+            values: this.definition.memberships(group, payload),
+            nextPath: this.definition.nextPath?.(payload, currentPath),
+          })),
         ),
       )
     ).flat();

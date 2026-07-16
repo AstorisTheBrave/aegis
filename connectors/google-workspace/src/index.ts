@@ -38,6 +38,12 @@ export class GoogleWorkspaceConnector extends DirectoryApiConnector {
           ((payload as { members?: GoogleMember[] }).members ?? [])
             .filter((member) => member.type === 'USER')
             .map((member) => ({ groupId: group.id, identityId: member.id })),
+        nextPath: (payload, currentPath) => {
+          const token = (payload as { nextPageToken?: string }).nextPageToken;
+          return token
+            ? `${currentPath}${currentPath.includes('?') ? '&' : '?'}pageToken=${encodeURIComponent(token)}`
+            : undefined;
+        },
       },
       fetcher,
     );

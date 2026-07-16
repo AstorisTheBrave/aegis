@@ -43,6 +43,11 @@ export interface ReadOnlyClientOptions {
   readonly sleep?: (milliseconds: number) => Promise<void>;
 }
 
+export interface ProviderPage<T> {
+  readonly values: readonly T[];
+  readonly nextPath?: string;
+}
+
 export class ReadOnlyProviderClient {
   private readonly origin: URL;
   private readonly fetcher: typeof fetch;
@@ -80,6 +85,24 @@ export class ReadOnlyProviderClient {
         throw new Error(`Provider request failed: ${response.status} ${response.statusText}`);
       values.push(...select(await response.json()));
       nextPath = nextLink(response.headers.get('link'), this.origin);
+    }
+    return values;
+  }
+
+  async listPages<T>(
+    path: string,
+    decode: (payload: unknown, currentPath: string) => ProviderPage<T>,
+  ): Promise<T[]> {
+    const values: T[] = [];
+    let nextPath: string | undefined = path;
+    while (nextPath) {
+      const currentPath = nextPath;
+      const response = await this.request(currentPath, {});
+      if (!response.ok)
+        throw new Error(`Provider request failed: ${response.status} ${response.statusText}`);
+      const page = decode(await response.json(), currentPath);
+      values.push(...page.values);
+      nextPath = page.nextPath ?? nextLink(response.headers.get('link'), this.origin);
     }
     return values;
   }

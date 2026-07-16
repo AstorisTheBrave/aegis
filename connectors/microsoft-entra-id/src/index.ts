@@ -43,6 +43,7 @@ export class MicrosoftEntraIdConnector extends DirectoryApiConnector {
               identityId: member.id,
               grantType: 'INHERITED',
             })),
+        nextPath: (payload) => (payload as { '@odata.nextLink'?: string })['@odata.nextLink'],
       },
       fetcher,
     );

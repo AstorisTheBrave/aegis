@@ -32,4 +32,24 @@ describe('read-only connector runtime', () => {
     });
     expect(retryDirective(new Response('', { status: 403 }))).toBeUndefined();
   });
+
+  it('follows provider body pagination tokens without trusting a foreign origin', async () => {
+    const client = new ReadOnlyProviderClient({
+      origin: 'https://api.example.test',
+      fetcher: async (input) =>
+        new Response(
+          JSON.stringify(
+            String(input).endsWith('page=two')
+              ? { values: ['two'] }
+              : { values: ['one'], next: '/users?page=two' },
+          ),
+        ),
+    });
+    await expect(
+      client.listPages('/users', (payload) => {
+        const page = payload as { values: string[]; next?: string };
+        return { values: page.values, nextPath: page.next };
+      }),
+    ).resolves.toEqual(['one', 'two']);
+  });
 });
