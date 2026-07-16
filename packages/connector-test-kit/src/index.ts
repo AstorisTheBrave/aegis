@@ -39,8 +39,9 @@ export function redactFixture<T>(value: T): T {
 }
 
 export function redactEndpointUrl(value: string): string {
-  const isRelative = value.startsWith('/');
-  const url = isRelative ? new URL(value, 'https://redaction.invalid') : new URL(value);
+  const redacted = redactTokenLike(value);
+  const isRelative = redacted.startsWith('/');
+  const url = isRelative ? new URL(redacted, 'https://redaction.invalid') : new URL(redacted);
   url.username = '';
   url.password = '';
   for (const [key, queryValue] of url.searchParams) {
@@ -86,12 +87,15 @@ export function certifyReadOnlyConnector(
 }
 
 function redactString(value: string): string {
-  const redacted = value.replace(tokenLike, 'REDACTED');
   try {
-    return redactEndpointUrl(redacted);
+    return redactEndpointUrl(value);
   } catch {
-    return redacted;
+    return redactTokenLike(value);
   }
+}
+
+function redactTokenLike(value: string): string {
+  return value.replace(tokenLike, 'REDACTED');
 }
 
 export function assertConformantGraphBatch(batch: GraphSyncBatch): void {
