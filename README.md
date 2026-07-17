@@ -46,7 +46,9 @@ I use [Semantic Versioning](https://semver.org/). The v1 public surface is:
 - HTTP routes under `/v1` and their documented request/response contracts.
 - The connector protocol v1 manifest, Protobuf service, and maintained SDK APIs.
 - The published release Compose contract: `AEGIS_VERSION`, `MASTER_KEY`,
-  `POSTGRES_PASSWORD`, and documented host-port variables.
+  `POSTGRES_PASSWORD`, and documented host-port variables. Passwords may use
+  any characters; the production Compose file passes them to PostgreSQL without
+  embedding them in a URL.
 - Signed extension artifact and evidence-export formats.
 
 Everything else is internal implementation detail. A compatible addition raises

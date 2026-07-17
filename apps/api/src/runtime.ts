@@ -1,5 +1,5 @@
 import { Buffer } from 'node:buffer';
-import { Pool } from 'pg';
+import { Pool, type PoolConfig } from 'pg';
 import {
   PostgresAccessGraphRepository,
   PostgresActionRepository,
@@ -29,7 +29,8 @@ import { AssistanceManager } from './assistance.js';
 import { runMigrations } from './migrations.js';
 
 export interface RuntimeConfig {
-  readonly databaseUrl: string;
+  readonly databaseUrl?: string;
+  readonly database: PoolConfig;
   readonly masterKey: Uint8Array;
 }
 
@@ -40,19 +41,21 @@ export interface RunningAegisApi {
 
 export function parseRuntimeConfig(environment: NodeJS.ProcessEnv = process.env): RuntimeConfig {
   const databaseUrl = environment.DATABASE_URL;
-  if (!databaseUrl) throw new Error('DATABASE_URL is required');
+  const database = databaseUrl
+    ? { connectionString: databaseUrl }
+    : parsePostgresEnvironment(environment);
   const encoded = environment.MASTER_KEY;
   if (!encoded) throw new Error('MASTER_KEY is required');
   const masterKey = Buffer.from(encoded, 'base64');
   if (masterKey.byteLength !== 32) throw new Error('MASTER_KEY must decode to exactly 32 bytes');
-  return { databaseUrl, masterKey };
+  return { databaseUrl, database, masterKey };
 }
 
 export async function createRuntime(
   environment: NodeJS.ProcessEnv = process.env,
 ): Promise<RunningAegisApi> {
   const config = parseRuntimeConfig(environment);
-  const pool = new Pool({ connectionString: config.databaseUrl });
+  const pool = new Pool(config.database);
   try {
     await pool.query('SELECT 1');
     await runMigrations(pool);
@@ -100,4 +103,19 @@ export async function createRuntime(
     await pool.end();
     throw cause;
   }
+}
+
+function parsePostgresEnvironment(environment: NodeJS.ProcessEnv): PoolConfig {
+  const host = environment.PGHOST;
+  const database = environment.PGDATABASE;
+  const user = environment.PGUSER;
+  const password = environment.PGPASSWORD;
+  if (!host || !database || !user || !password) {
+    throw new Error('DATABASE_URL or PGHOST, PGDATABASE, PGUSER, and PGPASSWORD are required');
+  }
+  const port = environment.PGPORT === undefined ? 5432 : Number(environment.PGPORT);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error('PGPORT must be a valid TCP port');
+  }
+  return { host, database, user, password, port };
 }

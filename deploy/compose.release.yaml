@@ -20,8 +20,12 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://governance:${POSTGRES_PASSWORD}@postgres:5432/governance
       MASTER_KEY: ${MASTER_KEY:?Set MASTER_KEY to a base64-encoded 32-byte key before starting Aegis.}
+      PGHOST: postgres
+      PGPORT: '5432'
+      PGDATABASE: governance
+      PGUSER: governance
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set a unique database password before starting Aegis.}
       PORT: '3000'
     healthcheck:
       test:
