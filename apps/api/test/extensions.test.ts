@@ -24,7 +24,7 @@ describe('verified extension installation', () => {
         protocolVersion: CONNECTOR_PROTOCOL_VERSION,
         governance: {
           protocolVersions: [CONNECTOR_PROTOCOL_VERSION],
-          platform: { minimum: '0.1.0', maximum: '0.1.0' },
+          platform: { minimum: '1.0.0', maximum: '1.0.0' },
           provenance: {
             sourceRevision: 'git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
             buildDigest: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
@@ -104,7 +104,7 @@ describe('verified extension installation', () => {
         protocolVersion: CONNECTOR_PROTOCOL_VERSION,
         governance: {
           protocolVersions: [CONNECTOR_PROTOCOL_VERSION],
-          platform: { minimum: '0.1.0' },
+          platform: { minimum: '1.0.0' },
           provenance: {
             sourceRevision: 'git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
             buildDigest: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',

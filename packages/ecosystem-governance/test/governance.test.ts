@@ -3,7 +3,7 @@ import { assertArtifactGovernance, type ArtifactGovernanceMetadata } from '../sr
 
 const metadata: ArtifactGovernanceMetadata = {
   protocolVersions: ['1.0.0'],
-  platform: { minimum: '0.1.0', maximum: '0.2.0' },
+  platform: { minimum: '1.0.0', maximum: '1.1.0' },
   provenance: {
     sourceRevision: 'git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     buildDigest: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
@@ -20,7 +20,7 @@ describe('ecosystem governance', () => {
 
   it('rejects incompatible, retired, and malformed artifact metadata', () => {
     expect(() =>
-      assertArtifactGovernance({ ...metadata, platform: { minimum: '0.2.0' } }, '1.0.0'),
+      assertArtifactGovernance({ ...metadata, platform: { minimum: '1.0.1' } }, '1.0.0'),
     ).toThrow('compatible');
     expect(() =>
       assertArtifactGovernance(

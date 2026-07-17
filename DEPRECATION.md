@@ -1,9 +1,9 @@
 # Deprecation policy
 
-An artifact deprecation is an immutable signed lifecycle declaration. It must
-state a human-readable reason, effective timestamp, and replacement identifier
-when one exists. Deprecated artifacts remain visible in the catalog so operators
-can plan migration. Retired artifacts cannot be newly installed.
+I deprecate an ecosystem artifact with an immutable signed declaration that
+names the reason, effective date, and replacement when one exists. Deprecated
+artifacts remain visible so operators can plan a move. Retired artifacts cannot
+be installed again.
 
-Protocol changes use a new version. Aegis does not silently reinterpret an
-existing protocol manifest or expand its permissions.
+I do not silently reinterpret a connector manifest or expand its permissions.
+Protocol changes ship in a new version with a documented compatibility path.

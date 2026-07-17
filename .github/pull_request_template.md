@@ -1,6 +1,6 @@
-## Change summary
+## What this changes
 
-## Verification
+## How I checked it
 
 - [ ] `pnpm format`
 - [ ] `pnpm lint`

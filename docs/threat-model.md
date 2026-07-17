@@ -1,11 +1,11 @@
 # Aegis threat model
 
-This is a public, implementation-aligned threat model for the self-hosted
-Aegis Compose deployment. It uses STRIDE for design review and maps API checks
+This is our public, implementation-aligned threat model for a self-hosted
+Aegis Compose deployment. We use STRIDE for design review and map API checks
 to the [OWASP API Security Top 10 2023](https://owasp.org/API-Security/editions/2023/en/0x11-t10/)
 and [OWASP ASVS 5.0](https://owasp.org/www-project-application-security-verification-standard/).
-It is a security engineering baseline, not a claim of certification or a
-substitute for a deployment-specific assessment.
+It is a security-engineering baseline, not a claim of certification or a
+substitute for your deployment-specific assessment.
 
 ## System and trust boundaries
 
@@ -19,12 +19,12 @@ flowchart LR
   provider[Provider fixtures and test tenants] -->|read-only evidence only| api
 ```
 
-The console gateway is the browser boundary. It serves static assets, proxies
+The console gateway is our browser boundary. It serves static assets, proxies
 only the fixed `/api/*` path to the internal API service, applies a strict
 same-origin CSP, and does not accept a user-controlled upstream URL.
 PostgreSQL has no host port in the default Compose deployment. The API port is
-loopback-only to support local automation; production operators should normally
-place the console behind TLS and keep the API network-private.
+loopback-only for local automation; put the console behind TLS and keep the API
+network-private in production.
 
 ## Assets
 
@@ -50,7 +50,7 @@ place the console behind TLS and keep the API network-private.
 
 ## Verification mapping
 
-The Playwright suite in `apps/e2e` verifies the deployed stack rather than an
+Our Playwright suite in `apps/e2e` verifies the deployed stack rather than an
 in-memory substitute. It covers OWASP API1/API3 tenant and property isolation,
 API4 resource limits, API5 approval boundaries, API6 lifecycle-flow abuse,
 API7 fixed-target proxy behavior, API8 browser/deployment headers, API9 route
@@ -61,7 +61,7 @@ and browser security headers.
 ## Out of scope and review triggers
 
 This model does not cover production identity providers, live provider writes,
-internet-facing rate limiting, managed database operations, or a specific
-customer's network. Revisit it before adding authentication, any credential
-intake path, a new connector transport, a provider mutation, a public SaaS
-deployment, or a new browser origin.
+internet-facing rate limiting, managed database operations, or your specific
+network. Revisit it before adding authentication, any credential intake path,
+a new connector transport, a provider mutation, a public SaaS deployment, or a
+new browser origin.
