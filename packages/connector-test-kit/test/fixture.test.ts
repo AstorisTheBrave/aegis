@@ -3,6 +3,7 @@ import {
   assertConformantGraphBatch,
   certifyReadOnlyConnector,
   createMockProvider,
+  redactEndpointUrl,
   redactFixture,
 } from '../src/index.js';
 
@@ -24,24 +25,57 @@ describe('connector test kit', () => {
       exchanges: [
         {
           method: 'GET',
-          url: 'https://api.example.test/users',
+          url: 'https://api.example.test/users/ghp_secret?access_token=top-secret&sig=signed-secret&X-Amz-Credential=aws-secret&auth=opaque-secret&cursor=ghp_secret&continuation=continue#xoxb-secret',
           requestHeaders: { Authorization: 'Bearer ghp_secret' },
           responseStatus: 200,
-          responseBody: { token: 'xoxb-secret', users: [] },
+          responseBody: {
+            token: 'xoxb-secret',
+            note: 'Bearer eyJ.fixture.secret',
+            next: 'users?access_token=top-secret&auth=opaque-secret&cursor=ghp_secret&continuation=next',
+            users: [],
+          },
         },
       ],
     };
     expect(redactFixture(fixture)).toMatchObject({
       exchanges: [
-        { requestHeaders: { Authorization: 'REDACTED' }, responseBody: { token: 'REDACTED' } },
+        {
+          url: 'https://api.example.test/users/REDACTED?access_token=REDACTED&sig=REDACTED&X-Amz-Credential=REDACTED&auth=REDACTED&cursor=REDACTED&continuation=REDACTED',
+          requestHeaders: { Authorization: 'REDACTED' },
+          responseBody: {
+            token: 'REDACTED',
+            note: 'REDACTED',
+            next: 'users?access_token=REDACTED&auth=REDACTED&cursor=REDACTED&continuation=REDACTED',
+          },
+        },
       ],
     });
     expect(certifyReadOnlyConnector(manifest, fixture, '2026-07-14T00:00:00.000Z')).toMatchObject({
       noWriteProof: true,
       requestMethods: ['GET'],
+      endpointInventory: [
+        'https://api.example.test/users/REDACTED?access_token=REDACTED&sig=REDACTED&X-Amz-Credential=REDACTED&auth=REDACTED&cursor=REDACTED&continuation=REDACTED',
+      ],
     });
+    expect(redactEndpointUrl('?auth=opaque-secret&cursor=continue#fragment')).toBe(
+      '?auth=REDACTED&cursor=REDACTED',
+    );
+    expect(redactEndpointUrl('/users?access_token=top-secret')).toBe(
+      '/users?access_token=REDACTED',
+    );
+    expect(redactEndpointUrl('./users?auth=opaque-secret')).toBe('./users?auth=REDACTED');
+    expect(redactEndpointUrl('../users?cursor=ghp_secret')).toBe('../users?cursor=REDACTED');
+    expect(redactEndpointUrl('//api.example.test/users?api_key=opaque-secret')).toBe(
+      '//api.example.test/users?api_key=REDACTED',
+    );
     const provider = createMockProvider(fixture);
-    expect((await provider('https://api.example.test/users')).status).toBe(200);
+    expect(
+      (
+        await provider(
+          'https://api.example.test/users/ghp_secret?access_token=top-secret&sig=signed-secret&X-Amz-Credential=aws-secret&auth=opaque-secret&cursor=ghp_secret&continuation=continue#xoxb-secret',
+        )
+      ).status,
+    ).toBe(200);
   });
 
   it('rejects write recordings and replay mismatches', async () => {

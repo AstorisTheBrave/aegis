@@ -19,11 +19,12 @@ export interface FixtureBundle {
 }
 
 const sensitiveKey = /authorization|cookie|secret|password|token|api[-_]?key/i;
-const tokenLike = /(?:bearer\s+|gh[pousr]_[a-zA-Z0-9_-]+|xox[baprs]-[a-zA-Z0-9-]+)/gi;
+const tokenLike = /(?:bearer\s+\S+|gh[pousr]_[a-zA-Z0-9_-]+|xox[baprs]-[a-zA-Z0-9-]+)/gi;
+const absoluteUrl = /^[a-z][a-z\d+.-]*:/i;
 
 export function redactFixture<T>(value: T): T {
   if (Array.isArray(value)) return value.map(redactFixture) as T;
-  if (typeof value === 'string') return value.replace(tokenLike, 'REDACTED') as T;
+  if (typeof value === 'string') return redactString(value) as T;
   if (value && typeof value === 'object') {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>).map(([key, nested]) => [
@@ -33,6 +34,38 @@ export function redactFixture<T>(value: T): T {
     ) as T;
   }
   return value;
+}
+
+export function redactEndpointUrl(value: string): string {
+  const redacted = redactTokenLike(value);
+  const reference = classifyUrlReference(redacted);
+  if (!reference) throw new TypeError('Value is not a URL reference');
+
+  const url =
+    reference.kind === 'absolute'
+      ? new URL(redacted)
+      : new URL(redacted, 'https://redaction.invalid');
+  url.username = '';
+  url.password = '';
+  for (const [key] of url.searchParams) {
+    url.searchParams.set(key, 'REDACTED');
+  }
+  url.hash = '';
+
+  switch (reference.kind) {
+    case 'absolute':
+      return url.toString();
+    case 'protocol-relative':
+      return `//${url.host}${url.pathname}${url.search}`;
+    case 'root-relative':
+      return `${url.pathname}${url.search}`;
+    case 'query-relative':
+      return url.search;
+    case 'path-relative':
+      return `${reference.path}${url.search}`;
+    case 'fragment-relative':
+      return '';
+  }
 }
 
 export function certifyReadOnlyConnector(
@@ -56,7 +89,9 @@ export function certifyReadOnlyConnector(
     status: 'fixture_certified',
     fixtureDigest: `sha256:${createHash('sha256').update(canonicalJson(redacted)).digest('hex')}`,
     requestMethods: methods as ('GET' | 'HEAD')[],
-    endpointInventory: [...new Set(fixture.exchanges.map((exchange) => exchange.url))].sort(),
+    endpointInventory: [
+      ...new Set(fixture.exchanges.map((exchange) => redactEndpointUrl(exchange.url))),
+    ].sort(),
     noWriteProof: true,
     scopeReview: {
       status: 'self_attested',
@@ -65,6 +100,38 @@ export function certifyReadOnlyConnector(
     },
     certifiedAt,
   };
+}
+
+function redactString(value: string): string {
+  try {
+    return redactEndpointUrl(value);
+  } catch {
+    return redactTokenLike(value);
+  }
+}
+
+function redactTokenLike(value: string): string {
+  return value.replace(tokenLike, 'REDACTED');
+}
+
+type UrlReference =
+  | {
+      readonly kind:
+        'absolute' | 'protocol-relative' | 'root-relative' | 'query-relative' | 'fragment-relative';
+    }
+  | { readonly kind: 'path-relative'; readonly path: string };
+
+function classifyUrlReference(value: string): UrlReference | undefined {
+  if (absoluteUrl.test(value)) return { kind: 'absolute' };
+  if (/\s/.test(value)) return undefined;
+  if (value.startsWith('//')) return { kind: 'protocol-relative' };
+  if (value.startsWith('/')) return { kind: 'root-relative' };
+  if (value.startsWith('?')) return { kind: 'query-relative' };
+  if (value.startsWith('#')) return { kind: 'fragment-relative' };
+
+  const separator = value.search(/[?#]/);
+  if (separator <= 0) return undefined;
+  return { kind: 'path-relative', path: value.slice(0, separator) };
 }
 
 export function assertConformantGraphBatch(batch: GraphSyncBatch): void {

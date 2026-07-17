@@ -8,4 +8,4 @@ describe('Atlassian connector', () =>
           read: async () => ({ identities: [], groups: [], memberships: [] }),
         }).sync({ tenantId: 't', token: 'x' })
       ).connectorId,
-    ).toBe('atlassian-cloud')));
+    ).toBe('atlassian')));
