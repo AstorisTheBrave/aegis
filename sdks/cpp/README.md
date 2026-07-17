@@ -1,5 +1,5 @@
 # Aegis Connector SDK for C++
 
-The C++17 SDK provides protocol helpers for connector implementations. Generated
-Protobuf/gRPC clients must be built with a pinned compatible C++ runtime; C++
-generated code is deliberately not exposed as a cross-version ABI.
+Our C++17 SDK provides protocol helpers for connector implementations. Build
+generated Protobuf/gRPC clients with a pinned compatible C++ runtime; we do not
+expose generated C++ code as a cross-version ABI.

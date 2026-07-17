@@ -1,7 +1,7 @@
 # Audit ledger contracts
 
-This module defines append-only, hash-chained audit records. It does not know whether records are
-stored in PostgreSQL, exported to a SIEM, or kept in memory for tests.
+We define append-only, hash-chained audit records here. The module does not care whether an
+adapter stores them in PostgreSQL, exports them to a SIEM, or keeps them in memory for tests.
 
-Every adapter must preserve the returned sequence and chain hashes exactly. A record failing
-`verifyAuditChain` is evidence of an incomplete or altered ledger.
+Every adapter must preserve the returned sequence and chain hashes exactly. Treat a record that
+fails `verifyAuditChain` as evidence of an incomplete or altered ledger.

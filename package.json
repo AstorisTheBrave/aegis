@@ -1,7 +1,7 @@
 {
   "name": "aegis",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A self-hosted, modular shield for SaaS access governance.",
   "packageManager": "pnpm@11.13.0",
   "engines": {
@@ -18,7 +18,8 @@
     "test:e2e:browser": "pnpm --filter @aegis/e2e test:e2e",
     "typecheck": "turbo run typecheck",
     "format": "prettier --check .",
-    "format:write": "prettier --write ."
+    "format:write": "prettier --write .",
+    "release:verify": "node scripts/release.mjs verify"
   },
   "devDependencies": {
     "prettier": "3.9.5",

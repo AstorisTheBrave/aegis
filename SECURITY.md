@@ -2,24 +2,30 @@
 
 ## Supported versions
 
-| Version                               | Supported |
-| ------------------------------------- | --------- |
-| `main`                                | Yes       |
-| Latest published release              | Yes       |
-| Older releases and pre-release builds | No        |
+| Version                         | Support             |
+| ------------------------------- | ------------------- |
+| Latest stable release           | Yes                 |
+| `main`                          | Yes, before release |
+| Older releases and pre-releases | No                  |
 
-## Reporting a vulnerability
+## Report a vulnerability
 
-Use GitHub's private [Report a vulnerability](https://github.com/AstorisTheBrave/aegis/security/advisories/new) flow. Include the affected version or commit, a safe reproduction, expected impact, and any relevant redacted logs.
+Use GitHub's private [Report a vulnerability](https://github.com/AstorisTheBrave/aegis/security/advisories/new)
+flow. Include the affected version or commit, a safe reproduction, impact, and
+redacted logs if they help.
 
-Do not open a public issue, publish an exploit, or include credentials, tokens, customer data, or master keys before maintainers have had a reasonable opportunity to investigate and ship a fix.
+Do not open a public issue, publish an exploit, or include credentials, tokens,
+customer data, or master keys. I will acknowledge valid reports, investigate
+privately, coordinate a fix, and publish an advisory when a remedy is available.
+Credit is optional and always up to the reporter.
 
-## Security boundaries
+## v1 security boundary
 
-Aegis is designed for read-only discovery, policy evaluation, evidence export, and review workflows. Findings, review decisions, and removal recommendations must not mutate a connected provider. Connectors and extensions must declare their scopes and endpoints; any future write capability requires explicit protocol support, documentation, and tests.
+Aegis v1 supports read-only discovery, policy evaluation, evidence export,
+reviews, and simulated controlled actions. It does not authenticate end users,
+accept arbitrary provider URLs, or perform live provider mutations. Deploy it
+behind an identity-aware reverse proxy and keep database, backups, and secrets
+under your own operational controls.
 
-Credentials and master keys must never be included in issues, test fixtures, logs, or evidence exports. Treat extension artifacts, provider payloads, policy inputs, and exported evidence as untrusted data.
-
-## Handling reports
-
-Maintainers will acknowledge valid reports, coordinate fixes privately, and publish an advisory when a fix is available. Credit is given to reporters who want it and whose reports are handled under coordinated disclosure.
+Read the [threat model](docs/threat-model.md) for the implementation-specific
+controls and residual risks.

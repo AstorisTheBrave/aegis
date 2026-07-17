@@ -1,8 +1,8 @@
 # Access graph contracts
 
-This package owns the canonical, provider-neutral access graph. It intentionally contains no
-database or HTTP dependency.
+We keep the canonical, provider-neutral access graph in this package. It has no database or HTTP
+dependency by design.
 
-Providers are normalized into identities, resources, entitlements, and grants. Storage adapters
-implement `AccessGraphRepository`; policy, review, API, and connector modules consume only that
-interface.
+We normalize providers into identities, resources, entitlements, and grants. Storage adapters
+implement `AccessGraphRepository`; our policy, review, API, and connector modules consume only
+that interface.

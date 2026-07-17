@@ -1,4 +1,4 @@
-export const platformVersion = '0.1.0' as const;
+export const platformVersion = '1.0.0' as const;
 
 export interface PlatformCompatibility {
   readonly minimum: string;

@@ -1,5 +1,5 @@
 {
-  "platformVersion": "0.1.0",
+  "platformVersion": "1.0.0",
   "connectorProtocol": {
     "version": "1.0.0",
     "status": "supported",
