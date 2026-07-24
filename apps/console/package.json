@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@aegis/api-contract": "workspace:*",
-    "lucide-react": "1.24.0",
+    "lucide-react": "1.26.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "simple-icons": "16.26.0"
